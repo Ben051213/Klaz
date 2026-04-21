@@ -1,0 +1,183 @@
+import { NextResponse } from "next/server"
+import { anthropic, buildSystemPrompt, tagMessage } from "@/lib/anthropic"
+import { createClient } from "@/lib/supabase/server"
+
+export const runtime = "nodejs"
+
+export async function POST(request: Request) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const body = await request.json()
+  const { message, session_id } = body as {
+    message?: string
+    session_id?: string
+  }
+  if (!message || !session_id) {
+    return NextResponse.json(
+      { error: "message and session_id are required" },
+      { status: 400 }
+    )
+  }
+
+  const { data: session } = await supabase
+    .from("sessions")
+    .select(
+      "id, title, ai_context, class_id, status, classes(subject, grade, teacher_id, profiles:profiles!classes_teacher_id_fkey(name))"
+    )
+    .eq("id", session_id)
+    .single()
+
+  if (!session) {
+    return NextResponse.json({ error: "Session not found" }, { status: 404 })
+  }
+  if (session.status !== "active") {
+    return NextResponse.json({ error: "Session has ended" }, { status: 400 })
+  }
+
+  const { data: enrollment } = await supabase
+    .from("class_enrollments")
+    .select("id")
+    .eq("class_id", session.class_id)
+    .eq("student_id", user.id)
+    .maybeSingle()
+  if (!enrollment) {
+    return NextResponse.json({ error: "Not enrolled" }, { status: 403 })
+  }
+
+  const { data: insertedMessage, error: insertError } = await supabase
+    .from("messages")
+    .insert({
+      session_id,
+      student_id: user.id,
+      student_text: message,
+    })
+    .select()
+    .single()
+  if (insertError || !insertedMessage) {
+    return NextResponse.json(
+      { error: insertError?.message || "Could not save message" },
+      { status: 500 }
+    )
+  }
+
+  const { data: priorMessages } = await supabase
+    .from("messages")
+    .select("student_text, ai_response")
+    .eq("session_id", session_id)
+    .eq("student_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(20)
+
+  const history: { role: "user" | "assistant"; content: string }[] = []
+  for (const m of priorMessages ?? []) {
+    if (m.student_text && m.ai_response) {
+      history.push({ role: "user", content: m.student_text })
+      history.push({ role: "assistant", content: m.ai_response })
+    }
+  }
+  history.push({ role: "user", content: message })
+
+  type SessionShape = {
+    title: string
+    ai_context?: string | null
+    classes?: {
+      subject: string
+      grade?: string | null
+      profiles?: { name: string } | null
+    } | null
+  }
+  const normalizeSession = (raw: unknown): SessionShape => {
+    const r = raw as {
+      title: string
+      ai_context?: string | null
+      classes?:
+        | {
+            subject: string
+            grade?: string | null
+            profiles?: { name: string } | { name: string }[] | null
+          }
+        | { subject: string; grade?: string | null; profiles?: { name: string } | { name: string }[] | null }[]
+        | null
+    }
+    const c = Array.isArray(r.classes) ? r.classes[0] : r.classes
+    const p = c
+      ? Array.isArray(c.profiles)
+        ? c.profiles[0]
+        : c.profiles
+      : null
+    return {
+      title: r.title,
+      ai_context: r.ai_context,
+      classes: c
+        ? { subject: c.subject, grade: c.grade, profiles: p ?? null }
+        : null,
+    }
+  }
+  const systemPrompt = buildSystemPrompt(normalizeSession(session))
+
+  const stream = await anthropic.messages.stream({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1024,
+    system: systemPrompt,
+    messages: history,
+  })
+
+  const { data: sessionTopicsRow } = await supabase
+    .from("student_topic_scores")
+    .select("topic")
+    .eq("class_id", session.class_id)
+  const sessionTopics = (sessionTopicsRow ?? []).map((t) => t.topic)
+
+  const encoder = new TextEncoder()
+  const readable = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let fullText = ""
+      try {
+        for await (const event of stream) {
+          if (
+            event.type === "content_block_delta" &&
+            event.delta.type === "text_delta"
+          ) {
+            const chunk = event.delta.text
+            fullText += chunk
+            controller.enqueue(encoder.encode(chunk))
+          }
+        }
+      } catch (err) {
+        controller.error(err)
+        return
+      } finally {
+        controller.close()
+      }
+
+      // Persist the AI response and kick off background tagging.
+      const persist = async () => {
+        const sb = await createClient()
+        await sb
+          .from("messages")
+          .update({ ai_response: fullText })
+          .eq("id", insertedMessage.id)
+        tagMessage({
+          studentText: message,
+          aiResponse: fullText,
+          sessionTopics,
+          messageId: insertedMessage.id,
+          studentId: user.id,
+          classId: session.class_id,
+        }).catch(() => {})
+      }
+      persist().catch(() => {})
+    },
+  })
+
+  return new Response(readable, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+    },
+  })
+}
