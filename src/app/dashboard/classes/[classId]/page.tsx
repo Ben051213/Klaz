@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ClassAnalytics } from "@/components/ClassAnalytics"
 import { JoinCodeDisplay } from "@/components/JoinCodeDisplay"
+import { RemoveStudentButton } from "@/components/RemoveStudentButton"
 import { SessionStartModal } from "@/components/SessionStartModal"
 import { createClient } from "@/lib/supabase/server"
 import { formatDateTime, formatDuration } from "@/lib/utils"
@@ -192,19 +193,28 @@ export default async function ClassDetailPage({
                 {roster.map((r) => (
                   <li
                     key={r.id}
-                    className="flex items-center justify-between py-2 text-sm"
+                    className="flex items-center justify-between gap-2 py-2 text-sm"
                   >
-                    <div>
-                      <p className="font-medium text-slate-800">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-800">
                         {r.profiles?.name ?? "Student"}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="truncate text-xs text-slate-500">
                         {r.profiles?.email}
                       </p>
                     </div>
-                    <span className="text-xs text-slate-400">
-                      Joined {formatDateTime(r.joined_at)}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="hidden text-xs text-slate-400 sm:inline">
+                        Joined {formatDateTime(r.joined_at)}
+                      </span>
+                      {r.profiles ? (
+                        <RemoveStudentButton
+                          classId={klass.id}
+                          studentId={r.profiles.id}
+                          studentName={r.profiles.name}
+                        />
+                      ) : null}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -230,6 +240,9 @@ export default async function ClassDetailPage({
           <CardTitle className="text-base text-brand-navy">
             Past sessions
           </CardTitle>
+          <p className="text-xs text-slate-500">
+            Click a session to review its full log and AI-generated follow-ups.
+          </p>
         </CardHeader>
         <CardContent>
           {pastSessions.length === 0 ? (
@@ -237,18 +250,30 @@ export default async function ClassDetailPage({
           ) : (
             <ul className="divide-y divide-slate-100">
               {pastSessions.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm"
-                >
-                  <div>
-                    <p className="font-medium text-slate-800">{s.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {formatDateTime(s.started_at)} ·{" "}
-                      {formatDuration(s.started_at, s.ended_at ?? undefined)}
-                    </p>
-                  </div>
-                  <Badge variant="secondary">Ended</Badge>
+                <li key={s.id}>
+                  <Link
+                    href={`/dashboard/session/${s.id}`}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md px-2 py-3 text-sm transition hover:bg-slate-50"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-800">
+                        {s.title}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {formatDateTime(s.started_at)} ·{" "}
+                        {formatDuration(
+                          s.started_at,
+                          s.ended_at ?? undefined
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">Ended</Badge>
+                      <span className="text-slate-400" aria-hidden>
+                        →
+                      </span>
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>

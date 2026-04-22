@@ -18,10 +18,7 @@ export function NavBar({ role, name }: { role: Role; name?: string }) {
 
   const links =
     role === "teacher"
-      ? [
-          { href: "/dashboard", label: "Classes" },
-          { href: "/dashboard/practice", label: "Suggested Follow-ups" },
-        ]
+      ? [{ href: "/dashboard", label: "Classes" }]
       : [{ href: "/learn", label: "My Classes" }]
 
   return (

@@ -251,15 +251,17 @@ export function StudentChat({
             </div>
           ) : (
             items.map((item) => (
+              // No questionLevel prop here — the "above/at/below lesson level"
+              // badge is teacher-facing only. Students shouldn't see their
+              // question flagged as "below lesson level" in real time —
+              // that discourages them from asking the basic clarifying
+              // questions we most want them to ask.
               <ChatMessage
                 key={item.key}
                 role={item.role}
                 content={item.content}
                 isStreaming={
                   item.role === "assistant" ? item.isStreaming : undefined
-                }
-                questionLevel={
-                  item.role === "user" ? item.questionLevel ?? null : null
                 }
               />
             ))

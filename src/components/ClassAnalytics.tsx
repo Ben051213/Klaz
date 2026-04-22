@@ -263,7 +263,14 @@ export function ClassAnalytics({
                       <span>
                         {s.topicCount} topic{s.topicCount === 1 ? "" : "s"}
                       </span>
-                      {s.weakest ? (
+                      {/* Only surface a "weakest" topic if it's actually
+                           weak (< 70). If the lowest-scored topic is
+                           already at 70+, the student is strong across
+                           the board and calling out a "weakest" would be
+                           misleading. Same logic in reverse for strongest:
+                           below 50 means everything's weak, so there's no
+                           real "strength" to celebrate. */}
+                      {s.weakest && s.weakest.score < 70 ? (
                         <span>
                           weakest:{" "}
                           <span className="font-medium text-red-600">
@@ -272,6 +279,7 @@ export function ClassAnalytics({
                         </span>
                       ) : null}
                       {s.strongest &&
+                      s.strongest.score >= 50 &&
                       s.strongest.topic !== s.weakest?.topic ? (
                         <span>
                           strongest:{" "}
