@@ -1,20 +1,46 @@
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { cn } from "@/lib/utils"
+
+type QuestionLevel = "below" | "at" | "above"
+
+function LevelTag({ level }: { level: QuestionLevel }) {
+  const cfg = {
+    above: { label: "above lesson level", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200", icon: "🎯" },
+    at: { label: "on level", cls: "bg-slate-50 text-slate-600 ring-slate-200", icon: "📍" },
+    below: { label: "below lesson level", cls: "bg-amber-50 text-amber-700 ring-amber-200", icon: "🪜" },
+  }[level]
+  return (
+    <span
+      className={cn(
+        "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1",
+        cfg.cls
+      )}
+    >
+      <span>{cfg.icon}</span>
+      <span>{cfg.label}</span>
+    </span>
+  )
+}
 
 export function ChatMessage({
   role,
   content,
   isStreaming,
+  questionLevel,
 }: {
   role: "user" | "assistant"
   content: string
   isStreaming?: boolean
+  questionLevel?: QuestionLevel | null
 }) {
   if (role === "user") {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-navy px-4 py-2 text-sm text-white shadow-sm">
+      <div className="flex flex-col items-end">
+        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand-navy px-4 py-2 text-sm text-white shadow-sm whitespace-pre-wrap">
           {content}
         </div>
+        {questionLevel ? <LevelTag level={questionLevel} /> : null}
       </div>
     )
   }
@@ -25,10 +51,17 @@ export function ChatMessage({
       </div>
       <div
         className={cn(
-          "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tl-sm border border-slate-100 bg-white px-4 py-2 text-sm text-slate-800 shadow-sm"
+          "prose prose-sm max-w-[85%] rounded-2xl rounded-tl-sm border border-slate-100 bg-white px-4 py-2 text-sm text-slate-800 shadow-sm",
+          // Tighten prose spacing — chat bubbles shouldn't look like a blog post
+          "prose-p:my-1 prose-headings:my-2 prose-headings:font-semibold prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
+          "prose-pre:my-2 prose-pre:rounded-md prose-pre:bg-slate-900 prose-pre:p-2 prose-pre:text-xs",
+          "prose-code:rounded prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:text-xs prose-code:font-mono prose-code:before:content-none prose-code:after:content-none",
+          "prose-a:text-brand-teal prose-strong:text-slate-900"
         )}
       >
-        {content}
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {content}
+        </ReactMarkdown>
         {isStreaming ? (
           <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-slate-400 align-middle" />
         ) : null}

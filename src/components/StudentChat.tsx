@@ -8,15 +8,24 @@ import { ChatMessage } from "@/components/ChatMessage"
 import { TopicScoreBar } from "@/components/TopicScoreBar"
 import { createClient } from "@/lib/supabase/client"
 
+type QuestionLevel = "below" | "at" | "above"
+
 type StoredMessage = {
   id: string
   student_text: string
   ai_response: string | null
+  question_level: QuestionLevel | null
   created_at: string
 }
 
 type ChatItem =
-  | { role: "user"; content: string; key: string }
+  | {
+      role: "user"
+      content: string
+      key: string
+      messageId?: string
+      questionLevel?: QuestionLevel | null
+    }
   | { role: "assistant"; content: string; key: string; isStreaming?: boolean }
 
 export function StudentChat({
@@ -38,7 +47,13 @@ export function StudentChat({
   const baseItems = useMemo<ChatItem[]>(() => {
     const out: ChatItem[] = []
     for (const m of initialMessages) {
-      out.push({ role: "user", content: m.student_text, key: `u-${m.id}` })
+      out.push({
+        role: "user",
+        content: m.student_text,
+        key: `u-${m.id}`,
+        messageId: m.id,
+        questionLevel: m.question_level,
+      })
       if (m.ai_response) {
         out.push({
           role: "assistant",
@@ -100,15 +115,53 @@ export function StudentChat({
     if (data) setScores(data)
   }
 
+  // Tagging runs async on the server after the stream closes. Poll the row
+  // a couple of times to pick up question_level (and the DB id for the
+  // optimistic user bubble) without waiting forever.
+  async function refreshQuestionLevel(userKey: string, createdAfter: string) {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await new Promise((r) => setTimeout(r, 1500))
+      const { data } = await supabase
+        .from("messages")
+        .select("id, question_level")
+        .eq("session_id", session.id)
+        .eq("student_id", user.id)
+        .gte("created_at", createdAfter)
+        .order("created_at", { ascending: false })
+        .limit(1)
+      const row = data?.[0]
+      if (row?.question_level) {
+        setItems((prev) =>
+          prev.map((x) =>
+            x.key === userKey && x.role === "user"
+              ? {
+                  ...x,
+                  messageId: row.id,
+                  questionLevel: row.question_level as QuestionLevel,
+                }
+              : x
+          )
+        )
+        return
+      }
+    }
+  }
+
   async function send() {
     if (!input.trim() || streaming || sessionEnded) return
     const userText = input.trim()
     setInput("")
+    const sendStartedAt = new Date().toISOString()
     const userKey = `u-pending-${Date.now()}`
     const assistantKey = `a-pending-${Date.now()}`
     setItems((prev) => [
       ...prev,
-      { role: "user", content: userText, key: userKey },
+      { role: "user", content: userText, key: userKey, questionLevel: null },
       { role: "assistant", content: "", key: assistantKey, isStreaming: true },
     ])
     setStreaming(true)
@@ -151,6 +204,8 @@ export function StudentChat({
       setStreaming(false)
       // refresh topic scores after a short delay (tagging happens async)
       setTimeout(refreshScores, 2000)
+      // pick up question_level as soon as the tagger writes it back
+      refreshQuestionLevel(userKey, sendStartedAt).catch(() => {})
     } catch {
       toast.error("Network error")
       setStreaming(false)
@@ -202,6 +257,9 @@ export function StudentChat({
                 content={item.content}
                 isStreaming={
                   item.role === "assistant" ? item.isStreaming : undefined
+                }
+                questionLevel={
+                  item.role === "user" ? item.questionLevel ?? null : null
                 }
               />
             ))

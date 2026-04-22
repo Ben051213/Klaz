@@ -33,7 +33,7 @@ export default async function StudentSessionPage({
 
   const { data: messages } = await supabase
     .from("messages")
-    .select("id, student_text, ai_response, created_at")
+    .select("id, student_text, ai_response, question_level, created_at")
     .eq("session_id", sessionId)
     .eq("student_id", user.id)
     .order("created_at", { ascending: true })
@@ -73,6 +73,7 @@ export default async function StudentSessionPage({
           id: string
           student_text: string
           ai_response: string | null
+          question_level: "below" | "at" | "above" | null
           created_at: string
         }[]) ?? []
       }

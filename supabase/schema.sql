@@ -77,6 +77,7 @@ create table public.messages (
   ai_response text,
   topics text[] default '{}',
   confidence_signal text check (confidence_signal in ('confused', 'partial', 'understood')),
+  question_level text check (question_level in ('below', 'at', 'above')),
   created_at timestamptz default now()
 );
 

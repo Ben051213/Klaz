@@ -161,10 +161,14 @@ export async function POST(request: Request) {
           .from("messages")
           .update({ ai_response: fullText })
           .eq("id", insertedMessage.id)
+        const normalized = normalizeSession(session)
         tagMessage({
           studentText: message,
           aiResponse: fullText,
           sessionTopics,
+          lessonSummary: normalized.ai_context ?? null,
+          grade: normalized.classes?.grade ?? null,
+          subject: normalized.classes?.subject ?? null,
           messageId: insertedMessage.id,
           studentId: user.id,
           classId: session.class_id,
