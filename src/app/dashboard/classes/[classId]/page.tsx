@@ -30,34 +30,42 @@ export default async function ClassDetailPage({
 
   // Roster, sessions and topic scores are fetched in parallel so the page
   // doesn't waterfall four round-trips.
-  const [enrollmentsRes, sessionsRes, scoresRes, messagesRes] =
-    await Promise.all([
-      supabase
-        .from("class_enrollments")
-        .select("id, joined_at, profiles(id, name, email)")
-        .eq("class_id", classId)
-        .order("joined_at", { ascending: true }),
-      supabase
-        .from("sessions")
-        .select("id, title, status, started_at, ended_at")
-        .eq("class_id", classId)
-        .order("started_at", { ascending: false }),
-      supabase
-        .from("student_topic_scores")
-        .select("student_id, topic, score")
-        .eq("class_id", classId),
-      supabase
-        .from("messages")
-        .select("student_id, sessions!inner(class_id)")
-        .eq("sessions.class_id", classId),
-    ])
+  const [enrollmentsRes, sessionsRes, scoresRes] = await Promise.all([
+    supabase
+      .from("class_enrollments")
+      .select("id, joined_at, profiles(id, name, email)")
+      .eq("class_id", classId)
+      .order("joined_at", { ascending: true }),
+    supabase
+      .from("sessions")
+      .select("id, title, status, started_at, ended_at")
+      .eq("class_id", classId)
+      .order("started_at", { ascending: false }),
+    supabase
+      .from("student_topic_scores")
+      .select("student_id, topic, score")
+      .eq("class_id", classId),
+  ])
 
+  type ProfileShape = { id: string; name: string; email: string }
+  type EnrollRowRaw = {
+    id: string
+    joined_at: string
+    // Supabase occasionally surfaces a to-one relation as a single-element
+    // array depending on FK inference — normalize both shapes.
+    profiles: ProfileShape | ProfileShape[] | null
+  }
   type EnrollRow = {
     id: string
     joined_at: string
-    profiles: { id: string; name: string; email: string } | null
+    profiles: ProfileShape | null
   }
-  const roster = (enrollmentsRes.data as EnrollRow[] | null) ?? []
+  const rawRoster = (enrollmentsRes.data as EnrollRowRaw[] | null) ?? []
+  const roster: EnrollRow[] = rawRoster.map((r) => ({
+    id: r.id,
+    joined_at: r.joined_at,
+    profiles: Array.isArray(r.profiles) ? r.profiles[0] ?? null : r.profiles,
+  }))
 
   type SessionRow = {
     id: string
@@ -75,13 +83,20 @@ export default async function ClassDetailPage({
       | { student_id: string; topic: string; score: number }[]
       | null) ?? []
 
-  // Roll up per-student message counts client-side since Postgres/Supabase
-  // doesn't expose SQL GROUP BY through PostgREST without a view.
+  // Roll up per-student message counts. Previously this used a nested
+  // sessions!inner(class_id) filter which PostgREST sometimes returned empty
+  // even for valid class ids — switching to an explicit session-id `.in`
+  // filter is simpler and works consistently.
+  const sessionIds = sessionRows.map((s) => s.id)
   const counts = new Map<string, number>()
-  for (const row of (messagesRes.data as
-    | { student_id: string }[]
-    | null) ?? []) {
-    counts.set(row.student_id, (counts.get(row.student_id) ?? 0) + 1)
+  if (sessionIds.length > 0) {
+    const { data: msgRows } = await supabase
+      .from("messages")
+      .select("student_id")
+      .in("session_id", sessionIds)
+    for (const row of (msgRows as { student_id: string }[] | null) ?? []) {
+      counts.set(row.student_id, (counts.get(row.student_id) ?? 0) + 1)
+    }
   }
   const messageCounts = Array.from(counts.entries()).map(
     ([student_id, question_count]) => ({ student_id, question_count })

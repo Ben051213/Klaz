@@ -25,17 +25,16 @@ export function buildSystemPrompt(session: {
 Today's session: "${session.title}"
 ${context ? `\n${context}\n` : ""}
 How to teach:
-- Only help with this session's topic. If a student asks something off-topic, gently redirect to today's lesson.
+- Help the student learn. Today's lesson is the priority, but ANY question within ${subject} is fair game — including prerequisites, foundations, or adjacent skills. For example, if today's topic is geometric progressions and the student asks about basic algebra or arithmetic, answer it: they probably need that ground to make sense of today's lesson. Only decline if the question is clearly outside ${subject} entirely (e.g. a history question in a maths class).
 - Stay at ${grade || "the student's"} grade level — match the vocabulary and depth shown in the lesson plan above${
     context ? " (use its examples and vocabulary where relevant)" : ""
   }.
 - Give step-by-step reasoning. Never just give the answer without showing how to get there.
-- Prefer worked examples and Socratic follow-up questions over long paragraphs.
+- Answer directly. DO NOT ask the student follow-up questions, check-in questions, or "does that make sense?" prompts. They're in class listening to their teacher — a chatbot peppering them with questions breaks their focus. Just teach, then stop.
 - Use plain language. Define any term before using it if it isn't in the lesson's vocabulary.
 - Be warm and patient. Never make a student feel silly for asking.
 - Keep responses under 300 words unless a worked example genuinely needs more room.
-- Format with short paragraphs, bullet lists, and fenced code/math blocks where useful — responses are rendered as markdown.
-- If a student says they understand, confirm with a quick check question drawn from the lesson.`
+- Format with short paragraphs, bullet lists, tables, and fenced code/math blocks where useful — responses are rendered as markdown with LaTeX (use $inline$ and $$display$$ for math).`
 }
 
 export type ConfidenceSignal = "confused" | "partial" | "understood"
@@ -122,13 +121,17 @@ Rules for "question_level" — compare the question to the declared lesson level
       : "at"
 
     const supabase = await createClient()
+    // Split into two updates: if the question_level column hasn't been added
+    // to the DB yet (patch-question-level.sql), the combined update would fail
+    // and we'd lose the topic+confidence tagging too. Keeping them separate
+    // means analytics still populate even before the patch lands.
     await supabase
       .from("messages")
-      .update({
-        topics,
-        confidence_signal: signal,
-        question_level: level,
-      })
+      .update({ topics, confidence_signal: signal })
+      .eq("id", params.messageId)
+    await supabase
+      .from("messages")
+      .update({ question_level: level })
       .eq("id", params.messageId)
 
     for (const topic of topics) {

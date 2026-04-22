@@ -21,29 +21,69 @@ export default async function SuggestedFollowUps() {
     .eq("sessions.classes.teacher_id", user.id)
     .order("created_at", { ascending: false })
 
+  // Supabase can return to-one relations as either an object or a
+  // single-element array — normalize both shapes so the template never
+  // blows up on r.profiles?.name etc.
+  type Profile = { id: string; name: string }
+  type ClassRel = { teacher_id: string; name: string }
+  type SessionRel = {
+    id: string
+    title: string
+    class_id: string
+    classes: ClassRel | ClassRel[] | null
+  }
+  type PracticeItem = {
+    id: string
+    question: string
+    answer: string
+    hint: string | null
+    difficulty: "easy" | "medium" | "hard" | null
+    sort_order: number
+  }
+  type RawRow = {
+    id: string
+    topics: string[]
+    status: string
+    created_at: string
+    student_id: string
+    profiles: Profile | Profile[] | null
+    sessions: SessionRel | SessionRel[] | null
+    practice_items: PracticeItem[]
+  }
   type Row = {
     id: string
     topics: string[]
     status: string
     created_at: string
     student_id: string
-    profiles: { id: string; name: string } | null
-    sessions: {
-      id: string
-      title: string
-      class_id: string
-      classes: { teacher_id: string; name: string } | null
-    } | null
-    practice_items: {
-      id: string
-      question: string
-      answer: string
-      hint: string | null
-      difficulty: "easy" | "medium" | "hard" | null
-      sort_order: number
-    }[]
+    profiles: Profile | null
+    sessions:
+      | (Omit<SessionRel, "classes"> & { classes: ClassRel | null })
+      | null
+    practice_items: PracticeItem[]
   }
-  const rows = (sets as Row[] | null) ?? []
+  const pickOne = <T,>(v: T | T[] | null | undefined): T | null =>
+    Array.isArray(v) ? v[0] ?? null : v ?? null
+  const rows: Row[] = ((sets as RawRow[] | null) ?? []).map((r) => {
+    const sess = pickOne(r.sessions)
+    return {
+      id: r.id,
+      topics: r.topics,
+      status: r.status,
+      created_at: r.created_at,
+      student_id: r.student_id,
+      profiles: pickOne(r.profiles),
+      sessions: sess
+        ? {
+            id: sess.id,
+            title: sess.title,
+            class_id: sess.class_id,
+            classes: pickOne(sess.classes),
+          }
+        : null,
+      practice_items: r.practice_items ?? [],
+    }
+  })
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">

@@ -1,5 +1,7 @@
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import remarkMath from "remark-math"
+import rehypeKatex from "rehype-katex"
 import { cn } from "@/lib/utils"
 
 type QuestionLevel = "below" | "at" | "above"
@@ -56,10 +58,19 @@ export function ChatMessage({
           "prose-p:my-1 prose-headings:my-2 prose-headings:font-semibold prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
           "prose-pre:my-2 prose-pre:rounded-md prose-pre:bg-slate-900 prose-pre:p-2 prose-pre:text-xs",
           "prose-code:rounded prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:text-xs prose-code:font-mono prose-code:before:content-none prose-code:after:content-none",
-          "prose-a:text-brand-teal prose-strong:text-slate-900"
+          "prose-a:text-brand-teal prose-strong:text-slate-900",
+          // Tables: Tailwind prose strips default borders; put them back so
+          // a GFM table actually looks like a table inside a chat bubble.
+          "prose-table:my-2 prose-table:w-full prose-table:text-xs prose-table:border prose-table:border-slate-200 prose-table:rounded-md prose-table:overflow-hidden",
+          "prose-thead:bg-slate-50",
+          "prose-th:border prose-th:border-slate-200 prose-th:px-2 prose-th:py-1 prose-th:text-left prose-th:font-semibold",
+          "prose-td:border prose-td:border-slate-200 prose-td:px-2 prose-td:py-1"
         )}
       >
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+        >
           {content}
         </ReactMarkdown>
         {isStreaming ? (

@@ -3,6 +3,10 @@ import { anthropic, buildSystemPrompt, tagMessage } from "@/lib/anthropic"
 import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
+// Sonnet streaming + post-stream Haiku tagging + score upserts can run past
+// the 10s Hobby default, especially on slower cold starts. 60s gives head-
+// room while still failing loudly if something is truly stuck.
+export const maxDuration = 60
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -154,15 +158,21 @@ export async function POST(request: Request) {
         controller.close()
       }
 
-      // Persist the AI response and kick off background tagging.
-      const persist = async () => {
+      // Persist the AI response and run tagging. Awaited (not fire-and-
+      // forget) because Vercel serverless can terminate the function the
+      // moment the stream controller closes — and without tagging the
+      // analytics (scores, heatmap, rankings) have nothing to display.
+      // The stream response has already been sent to the client, so this
+      // await only delays when the function terminates, not what the user
+      // sees.
+      try {
         const sb = await createClient()
         await sb
           .from("messages")
           .update({ ai_response: fullText })
           .eq("id", insertedMessage.id)
         const normalized = normalizeSession(session)
-        tagMessage({
+        await tagMessage({
           studentText: message,
           aiResponse: fullText,
           sessionTopics,
@@ -172,9 +182,10 @@ export async function POST(request: Request) {
           messageId: insertedMessage.id,
           studentId: user.id,
           classId: session.class_id,
-        }).catch(() => {})
+        })
+      } catch {
+        // Never surface persistence failures to the stream.
       }
-      persist().catch(() => {})
     },
   })
 

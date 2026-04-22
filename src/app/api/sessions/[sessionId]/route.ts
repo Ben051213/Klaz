@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
+import { generatePracticeForSession } from "@/lib/practice"
 import { createClient, createServiceClient } from "@/lib/supabase/server"
+
+// End-session can take 10-30s because we generate follow-up practice for
+// every enrolled student via Claude Haiku. Bump past the 10s Hobby default.
+export const maxDuration = 60
 
 export async function PATCH(
   request: Request,
@@ -49,14 +54,16 @@ export async function PATCH(
     await service.removeChannel(channel)
   } catch {}
 
-  // Fire-and-forget practice generation.
-  const origin = new URL(request.url).origin
-  const cookie = request.headers.get("cookie") ?? ""
-  fetch(`${origin}/api/practice/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", cookie },
-    body: JSON.stringify({ session_id: sessionId }),
-  }).catch(() => {})
+  // Await practice generation inline. Previously we fire-and-forget'd a
+  // fetch to /api/practice/generate, but serverless functions terminate as
+  // soon as the response is returned — the background fetch never finished,
+  // so the Suggested follow-ups page stayed empty.
+  try {
+    await generatePracticeForSession(sessionId)
+  } catch {
+    // Don't block session-end on a generation error — the session is still
+    // ended, and the teacher can always hit the generate endpoint manually.
+  }
 
   return NextResponse.json({ session })
 }
