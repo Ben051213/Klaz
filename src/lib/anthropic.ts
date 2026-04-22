@@ -52,15 +52,16 @@ export async function tagMessage(params: {
   classId: string
 }): Promise<void> {
   try {
-    const topicList =
-      params.sessionTopics.length > 0
-        ? params.sessionTopics.join(", ")
-        : "general topics from the lesson"
+    const existingList =
+      params.sessionTopics.length > 0 ? params.sessionTopics.join(", ") : ""
     const lessonBlock = params.lessonSummary?.trim()
       ? `Lesson summary:\n${params.lessonSummary.trim()}\n`
       : ""
     const gradeLine = params.grade ? `Grade level: ${params.grade}\n` : ""
     const subjectLine = params.subject ? `Subject: ${params.subject}\n` : ""
+    const existingBlock = existingList
+      ? `Topics already tracked in this class (prefer reusing these verbatim for consistency): ${existingList}\n`
+      : ""
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -70,15 +71,17 @@ export async function tagMessage(params: {
           role: "user",
           content: `You are tagging a classroom Q&A exchange for a tutor-centre analytics dashboard. Return ONLY valid JSON, no other text.
 
-${subjectLine}${gradeLine}${lessonBlock}Available topics: ${topicList}
-
+${subjectLine}${gradeLine}${lessonBlock}${existingBlock}
 Student asked: "${params.studentText}"
 AI responded: "${params.aiResponse.substring(0, 600)}"
 
 Return JSON: { "topics": ["topic1"], "confidence_signal": "confused|partial|understood", "question_level": "below|at|above" }
 
 Rules for "topics":
-- Array of matching topics from the available list. Empty array if nothing matches.
+- Extract 1-3 short, concrete topic names (2-4 words each) that describe what this exchange is about. Examples: "Geometric progressions", "Solving quadratics", "Ratios", "Photosynthesis".
+- If "Topics already tracked" is provided above, REUSE those names verbatim when they fit — do not create a near-duplicate like "Ratio" vs "Ratios".
+- Prefer topic names grounded in the lesson summary and subject when available.
+- Return at least one topic whenever the exchange is on-subject. Only return [] if the exchange is pure small talk with no learning content.
 
 Rules for "confidence_signal" — BE STRICT. Asking a question is evidence of a gap, NOT mastery.
 - "confused" = the question shows the student has a clear misconception, or they follow up saying they still don't get it.
@@ -171,9 +174,13 @@ async function upsertTopicScore(
   signal: ConfidenceSignal,
   level: QuestionLevel
 ): Promise<void> {
-  const delta = DELTA_MATRIX[level][signal]
-  if (delta === 0) return
-
+  // Always upsert the baseline row first so analytics can show the topic
+  // on the heatmap/rankings the moment a student engages with it — even
+  // when the delta is 0 (e.g. on-level + partial confidence, which is the
+  // most common case for a mid-lesson question). Previously we bailed on
+  // delta === 0 BEFORE the upsert, which meant "I asked about ratios" but
+  // never mastered anything → no row → nothing showed up in the teacher
+  // dashboard.
   const { data } = await supabase
     .from("student_topic_scores")
     .upsert(
@@ -182,6 +189,9 @@ async function upsertTopicScore(
     )
     .select()
     .single()
+
+  const delta = DELTA_MATRIX[level][signal]
+  if (delta === 0) return
 
   const currentScore = (data as { score?: number } | null)?.score ?? 50
   const newScore = Math.min(100, Math.max(0, currentScore + delta))
