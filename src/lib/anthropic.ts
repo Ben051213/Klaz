@@ -174,33 +174,41 @@ async function upsertTopicScore(
   signal: ConfidenceSignal,
   level: QuestionLevel
 ): Promise<void> {
-  // Always upsert the baseline row first so analytics can show the topic
-  // on the heatmap/rankings the moment a student engages with it — even
-  // when the delta is 0 (e.g. on-level + partial confidence, which is the
-  // most common case for a mid-lesson question). Previously we bailed on
-  // delta === 0 BEFORE the upsert, which meant "I asked about ratios" but
-  // never mastered anything → no row → nothing showed up in the teacher
-  // dashboard.
-  const { data } = await supabase
+  // Read-then-write. The previous implementation did
+  //   upsert({ score: 50 }).select().single() → then separately UPDATE
+  // which had two bugs:
+  //   1. Every upsert reset the existing score back to 50, so scores
+  //      could never accumulate past `50 + single_delta`.
+  //   2. `.select().single()` after an upsert occasionally returned zero
+  //      rows under RLS and threw, killing the whole function before any
+  //      write landed. That's the scenario the teacher was seeing:
+  //      messages.topics got written (outside this function) but
+  //      student_topic_scores stayed empty.
+  // maybeSingle is null-safe; the trailing upsert writes the exact
+  // computed score in one shot.
+  const { data: existing } = await supabase
     .from("student_topic_scores")
-    .upsert(
-      { student_id: studentId, class_id: classId, topic, score: 50 },
-      { onConflict: "student_id,class_id,topic" }
-    )
-    .select()
-    .single()
-
-  const delta = DELTA_MATRIX[level][signal]
-  if (delta === 0) return
-
-  const currentScore = (data as { score?: number } | null)?.score ?? 50
-  const newScore = Math.min(100, Math.max(0, currentScore + delta))
-  await supabase
-    .from("student_topic_scores")
-    .update({ score: newScore, last_updated: new Date().toISOString() })
+    .select("score")
     .eq("student_id", studentId)
     .eq("class_id", classId)
     .eq("topic", topic)
+    .maybeSingle()
+
+  const currentScore =
+    (existing as { score?: number } | null)?.score ?? 50
+  const delta = DELTA_MATRIX[level][signal]
+  const newScore = Math.min(100, Math.max(0, currentScore + delta))
+
+  await supabase.from("student_topic_scores").upsert(
+    {
+      student_id: studentId,
+      class_id: classId,
+      topic,
+      score: newScore,
+      last_updated: new Date().toISOString(),
+    },
+    { onConflict: "student_id,class_id,topic" }
+  )
 }
 
 type LessonPlanInput =

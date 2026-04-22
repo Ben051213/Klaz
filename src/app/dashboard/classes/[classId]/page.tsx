@@ -78,29 +78,57 @@ export default async function ClassDetailPage({
   const activeSession = sessionRows.find((s) => s.status === "active")
   const pastSessions = sessionRows.filter((s) => s.status === "ended")
 
-  const scores =
+  const scoresFromTable =
     (scoresRes.data as
       | { student_id: string; topic: string; score: number }[]
       | null) ?? []
 
-  // Roll up per-student message counts. Previously this used a nested
-  // sessions!inner(class_id) filter which PostgREST sometimes returned empty
-  // even for valid class ids — switching to an explicit session-id `.in`
-  // filter is simpler and works consistently.
+  // Fetch messages for question counts AND to backfill the topic list.
+  // Belt-and-suspenders: student_topic_scores is the canonical source for
+  // real scores, but if the write pipeline had a hiccup on a given message
+  // (RLS quirk, Haiku timeout, etc.) we still want the topic to appear on
+  // the heatmap at baseline 50 rather than vanish from the teacher view.
   const sessionIds = sessionRows.map((s) => s.id)
   const counts = new Map<string, number>()
+  const topicsFromMessages = new Map<string, Set<string>>() // student_id → topics
   if (sessionIds.length > 0) {
     const { data: msgRows } = await supabase
       .from("messages")
-      .select("student_id")
+      .select("student_id, topics")
       .in("session_id", sessionIds)
-    for (const row of (msgRows as { student_id: string }[] | null) ?? []) {
+    for (const row of (msgRows as
+      | { student_id: string; topics: string[] | null }[]
+      | null) ?? []) {
       counts.set(row.student_id, (counts.get(row.student_id) ?? 0) + 1)
+      if (Array.isArray(row.topics) && row.topics.length > 0) {
+        const bucket = topicsFromMessages.get(row.student_id) ?? new Set()
+        for (const t of row.topics) bucket.add(t)
+        topicsFromMessages.set(row.student_id, bucket)
+      }
     }
   }
   const messageCounts = Array.from(counts.entries()).map(
     ([student_id, question_count]) => ({ student_id, question_count })
   )
+
+  // Merge: start with the real scored rows, then add synthetic baseline
+  // entries for any (student, topic) pair that appears in messages but
+  // has no score row yet.
+  const seen = new Set(
+    scoresFromTable.map((s) => `${s.student_id}::${s.topic}`)
+  )
+  const scores: { student_id: string; topic: string; score: number }[] = [
+    ...scoresFromTable,
+  ]
+  for (const [studentId, topics] of topicsFromMessages.entries()) {
+    for (const topic of topics) {
+      const key = `${studentId}::${topic}`
+      if (!seen.has(key)) {
+        scores.push({ student_id: studentId, topic, score: 50 })
+        seen.add(key)
+      }
+    }
+  }
 
   const rosterStudents = roster
     .filter((r): r is EnrollRow & { profiles: NonNullable<EnrollRow["profiles"]> } =>
