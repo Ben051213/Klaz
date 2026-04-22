@@ -39,16 +39,16 @@ function SummarySection({
   if (items.length === 0) return null
   const dot =
     tone === "strong"
-      ? "bg-emerald-500"
+      ? "bg-klaz-ok"
       : tone === "weak"
-      ? "bg-red-500"
-      : "bg-slate-400"
+        ? "bg-klaz-bad"
+        : "bg-klaz-faint"
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-klaz-faint">
         {label}
       </p>
-      <ul className="mt-1 space-y-1 text-sm text-slate-700">
+      <ul className="mt-1 space-y-1 text-[13px] text-klaz-ink2">
         {items.map((t, i) => (
           <li key={i} className="flex gap-2">
             <span
@@ -111,22 +111,26 @@ export function StudentDetailPanel({
       summary.recommended_focus)
 
   return (
-    <div className="mt-3 space-y-4 rounded-lg border border-slate-100 bg-slate-50/60 p-4">
+    <div className="space-y-4 rounded-lg border border-klaz-line2 bg-klaz-panel p-4 text-klaz-ink">
       <div>
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <h4 className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-klaz-faint">
           AI summary
         </h4>
         {loadingSummary || !summary ? (
           <div className="mt-2 space-y-2">
-            <div className="h-3 w-2/3 animate-pulse rounded bg-slate-200" />
-            <div className="h-3 w-1/2 animate-pulse rounded bg-slate-200" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-klaz-line2" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-klaz-line2" />
           </div>
         ) : !hasAnySummary ? (
-          <p className="mt-1 text-sm text-slate-500">Nothing to summarize yet.</p>
+          <p className="mt-1 text-[13px] text-klaz-muted">
+            Nothing to summarize yet.
+          </p>
         ) : (
           <div className="mt-2 space-y-3">
             {summary.overall ? (
-              <p className="text-sm text-slate-800">{summary.overall}</p>
+              <p className="text-[13px] leading-[1.55] text-klaz-ink">
+                {summary.overall}
+              </p>
             ) : null}
             <SummarySection
               label="Strengths"
@@ -145,10 +149,10 @@ export function StudentDetailPanel({
             />
             {summary.recommended_focus ? (
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-klaz-faint">
                   Recommended focus
                 </p>
-                <p className="mt-1 text-sm text-slate-700">
+                <p className="mt-1 text-[13px] text-klaz-ink2">
                   {summary.recommended_focus}
                 </p>
               </div>
@@ -159,7 +163,7 @@ export function StudentDetailPanel({
 
       {topicScores.length > 0 ? (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <h4 className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-klaz-faint">
             Topic scores
           </h4>
           <div className="mt-2 space-y-2">
@@ -171,21 +175,21 @@ export function StudentDetailPanel({
       ) : null}
 
       <div>
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <h4 className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-klaz-faint">
           {studentName}&apos;s questions
         </h4>
         {messages.length === 0 ? (
-          <p className="mt-1 text-xs text-slate-500">No questions yet.</p>
+          <p className="mt-1 text-[12px] text-klaz-muted">No questions yet.</p>
         ) : (
-          <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto pr-1 text-sm">
+          <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto pr-1 text-[13px]">
             {messages.map((m) => (
               <li
                 key={m.id}
-                className="rounded-md border border-slate-100 bg-white p-2"
+                className="rounded-md border border-klaz-line2 bg-klaz-panel2 p-2"
               >
-                <p className="text-slate-800">{m.student_text}</p>
+                <p className="text-klaz-ink">{m.student_text}</p>
                 {m.confidence_signal ? (
-                  <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">
+                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.06em] text-klaz-faint">
                     {m.confidence_signal}
                     {m.topics?.length ? ` · ${m.topics.join(", ")}` : ""}
                   </p>

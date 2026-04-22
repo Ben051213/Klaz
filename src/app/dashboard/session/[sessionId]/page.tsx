@@ -19,7 +19,7 @@ export default async function TeacherSessionPage({
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      "id, title, status, class_id, started_at, ended_at, classes(id, name, subject, teacher_id)"
+      "id, title, status, class_id, started_at, ended_at, classes(id, name, subject, join_code, teacher_id)"
     )
     .eq("id", sessionId)
     .single()
@@ -34,6 +34,7 @@ export default async function TeacherSessionPage({
       id: string
       name: string
       subject: string
+      join_code: string
       teacher_id: string
     } | null
   }
@@ -110,6 +111,7 @@ export default async function TeacherSessionPage({
           classId: s.class_id,
           className: s.classes?.name ?? "",
           subject: s.classes?.subject ?? "",
+          joinCode: s.classes?.join_code ?? "",
           startedAt: s.started_at,
           endedAt: s.ended_at ?? undefined,
         }}
@@ -125,13 +127,14 @@ export default async function TeacherSessionPage({
       />
 
       {s.status === "ended" ? (
-        <div className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6">
-          <Card className="bg-white">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+          <Card className="border-klaz-line bg-klaz-panel">
             <CardHeader>
-              <CardTitle className="text-base text-brand-navy">
+              <CardTitle className="font-serif text-[24px] font-normal tracking-[-0.01em] text-klaz-ink">
                 Suggested follow-ups
+                <span className="text-klaz-accent">.</span>
               </CardTitle>
-              <p className="text-xs text-slate-500">
+              <p className="text-[12.5px] text-klaz-muted">
                 AI-generated practice questions targeting each student&apos;s
                 weak topics from this session. Students do not see these —
                 use them to prep the next class.
@@ -139,7 +142,7 @@ export default async function TeacherSessionPage({
             </CardHeader>
             <CardContent>
               {practiceRows.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">
+                <p className="py-6 text-center text-[13px] text-klaz-muted">
                   No follow-ups generated for this session yet. This happens
                   automatically a few seconds after a session ends — refresh
                   if you just ended it.

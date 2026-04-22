@@ -30,21 +30,27 @@ export function PracticeSetCard({
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <Card className="bg-white">
+    <Card className="border-klaz-line bg-klaz-panel">
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             {studentName ? (
-              <p className="text-xs uppercase tracking-wide text-slate-400">
+              <p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-klaz-faint">
                 {studentName}
               </p>
             ) : null}
-            <CardTitle className="text-base text-brand-navy">
-              {items.length} suggested question{items.length === 1 ? "" : "s"}
+            <CardTitle className="font-serif text-[20px] font-normal tracking-[-0.01em] text-klaz-ink">
+              {items.length} suggested question
+              {items.length === 1 ? "" : "s"}
+              <span className="text-klaz-accent">.</span>
             </CardTitle>
             <div className="mt-2 flex flex-wrap gap-1">
               {topics.map((t) => (
-                <Badge key={t} variant="secondary" className="text-[10px]">
+                <Badge
+                  key={t}
+                  variant="secondary"
+                  className="bg-klaz-line2 text-[10px] text-klaz-ink2"
+                >
                   {t}
                 </Badge>
               ))}
@@ -55,6 +61,7 @@ export function PracticeSetCard({
             variant="outline"
             size="sm"
             onClick={() => setExpanded((v) => !v)}
+            className="rounded-md border-klaz-line bg-klaz-panel2 text-[12.5px] font-medium text-klaz-ink2 hover:bg-klaz-line2"
           >
             {expanded ? "Hide" : "Preview"}
           </Button>
@@ -66,22 +73,25 @@ export function PracticeSetCard({
             {items.map((it, idx) => (
               <li
                 key={it.id}
-                className="rounded-md border border-slate-100 p-3 text-sm"
+                className="rounded-lg border border-klaz-line2 bg-klaz-panel2 p-3 text-[13px]"
               >
-                <p className="font-medium text-slate-800">
+                <p className="font-medium text-klaz-ink">
                   {idx + 1}. {it.question}
                 </p>
                 {it.difficulty ? (
-                  <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-400">
+                  <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-klaz-faint">
                     {it.difficulty}
                   </p>
                 ) : null}
-                <div className="mt-2 space-y-1 text-slate-600">
+                <div className="mt-2 space-y-1 text-klaz-ink2">
                   <p>
-                    <span className="font-medium">Answer:</span> {it.answer}
+                    <span className="font-medium text-klaz-ink">Answer:</span>{" "}
+                    {it.answer}
                   </p>
                   {it.hint ? (
-                    <p className="text-xs text-slate-500">Hint: {it.hint}</p>
+                    <p className="text-[12px] text-klaz-muted">
+                      Hint: {it.hint}
+                    </p>
                   ) : null}
                 </div>
               </li>

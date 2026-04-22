@@ -1,21 +1,34 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Klaz typography — Inter for UI, Instrument Serif for display titles,
+// JetBrains Mono for labels/timecodes/join codes.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 })
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
   subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  display: "swap",
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  display: "swap",
 })
 
 export const metadata: Metadata = {
-  title: "Klaz",
-  description: "AI-powered classroom intelligence",
+  title: "Klaz — an AI tutor your students trust",
+  description:
+    "Klaz is a classroom tutor scoped to your lessons. Students ask without fear. You see every question, every misconception, in real time.",
 }
 
 export default function RootLayout({
@@ -26,9 +39,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-800">
+      <body className="min-h-full flex flex-col bg-klaz-bg text-klaz-ink">
         {children}
         <Toaster richColors position="top-center" />
       </body>

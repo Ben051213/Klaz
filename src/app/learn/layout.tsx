@@ -23,7 +23,7 @@ export default async function LearnLayout({
   if (profile.role !== "student") redirect("/dashboard")
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-klaz-bg">
       <NavBar role="student" name={profile.name} />
       <main className="flex-1">{children}</main>
     </div>

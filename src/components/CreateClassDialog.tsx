@@ -49,18 +49,26 @@ export function CreateClassDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button className="bg-brand-navy hover:bg-brand-navy/90" />
+          <Button className="rounded-md bg-klaz-accent px-4 py-2 text-[13.5px] font-medium text-white transition hover:bg-klaz-accent2" />
         }
       >
-        Create New Class
+        + New class
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create a new class</DialogTitle>
+          <DialogTitle className="font-serif text-[24px] font-normal tracking-[-0.01em] text-klaz-ink">
+            Create a new class
+            <span className="text-klaz-accent">.</span>
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Class name</Label>
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="name"
+              className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-klaz-muted"
+            >
+              Class name
+            </Label>
             <Input
               id="name"
               placeholder="Period 3 Biology"
@@ -69,8 +77,13 @@ export function CreateClassDialog() {
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="subject"
+              className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-klaz-muted"
+            >
+              Subject
+            </Label>
             <Input
               id="subject"
               placeholder="Biology"
@@ -79,8 +92,13 @@ export function CreateClassDialog() {
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="grade">Grade (optional)</Label>
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="grade"
+              className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-klaz-muted"
+            >
+              Grade (optional)
+            </Label>
             <Input
               id="grade"
               placeholder="Year 10"
@@ -92,9 +110,9 @@ export function CreateClassDialog() {
             <Button
               type="submit"
               disabled={loading}
-              className="bg-brand-teal hover:bg-brand-teal/90"
+              className="rounded-md bg-klaz-accent px-4 py-2 text-[13.5px] font-medium text-white transition hover:bg-klaz-accent2 disabled:opacity-60"
             >
-              {loading ? "Creating…" : "Create class"}
+              {loading ? "Creating…" : "Create class →"}
             </Button>
           </DialogFooter>
         </form>

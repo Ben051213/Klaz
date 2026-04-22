@@ -79,18 +79,25 @@ export function SessionStartModal({ classId }: { classId: string }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button className="bg-brand-teal hover:bg-brand-teal/90" />
+          <Button className="rounded-md bg-klaz-accent px-4 py-2 text-[13.5px] font-medium text-white transition hover:bg-klaz-accent2" />
         }
       >
-        Start session
+        ◉ Start session
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Start a new session</DialogTitle>
+          <DialogTitle className="font-serif text-[24px] font-normal tracking-[-0.01em] text-klaz-ink">
+            Start a new session<span className="text-klaz-accent">.</span>
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="session-title">Session title</Label>
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="session-title"
+              className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-klaz-muted"
+            >
+              Session title
+            </Label>
             <Input
               id="session-title"
               placeholder="Cell division – mitosis vs meiosis"
@@ -99,8 +106,11 @@ export function SessionStartModal({ classId }: { classId: string }) {
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="lesson-plan-pdf">
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="lesson-plan-pdf"
+              className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-klaz-muted"
+            >
               Lesson plan PDF (optional)
             </Label>
             <Input
@@ -108,16 +118,19 @@ export function SessionStartModal({ classId }: { classId: string }) {
               type="file"
               accept="application/pdf"
               onChange={onPdfChange}
-              className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-xs file:font-medium hover:file:bg-slate-200"
+              className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-klaz-line2 file:px-3 file:py-1 file:text-xs file:font-medium hover:file:bg-klaz-line"
             />
-            <p className="text-xs text-slate-500">
+            <p className="text-[11.5px] text-klaz-muted">
               Upload your tutor centre&apos;s lesson plan PDF (max 10MB). Klaz
               will extract the main topic, objectives, examples, and
               vocabulary so the AI tutor stays on-script.
             </p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="lesson-plan">
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="lesson-plan"
+              className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-klaz-muted"
+            >
               Or paste a lesson outline (optional)
             </Label>
             <textarea
@@ -126,16 +139,16 @@ export function SessionStartModal({ classId }: { classId: string }) {
               value={lessonPlan}
               onChange={(e) => setLessonPlan(e.target.value)}
               rows={5}
-              className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex w-full rounded-lg border border-klaz-line bg-klaz-panel2 px-3 py-2.5 text-[13.5px] text-klaz-ink outline-none transition placeholder:text-klaz-faint focus:border-klaz-accent focus:ring-2 focus:ring-klaz-accent/20"
             />
           </div>
           <DialogFooter>
             <Button
               type="submit"
               disabled={loading}
-              className="bg-brand-navy hover:bg-brand-navy/90"
+              className="rounded-md bg-klaz-accent px-4 py-2 text-[13.5px] font-medium text-white transition hover:bg-klaz-accent2 disabled:opacity-60"
             >
-              {loading ? "Starting…" : "Start session"}
+              {loading ? "Starting…" : "Start session →"}
             </Button>
           </DialogFooter>
         </form>

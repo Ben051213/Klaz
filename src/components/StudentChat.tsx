@@ -2,11 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChatMessage } from "@/components/ChatMessage"
-import { TopicScoreBar } from "@/components/TopicScoreBar"
 import { createClient } from "@/lib/supabase/client"
+import { cn, scoreHex } from "@/lib/utils"
+
+// Student learning surface — the "warm editorial" chat with a left rail
+// that shows today's class and the student's own topic proficiencies.
+// The AI tutor only answers within the current session's scope; anything
+// off-topic gets redirected to the teacher (that boundary is shown in
+// the header under the title).
 
 type QuestionLevel = "below" | "at" | "above"
 
@@ -74,6 +78,7 @@ export function StudentChat({
     session.status === "ended"
   )
   const scrollRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -82,7 +87,9 @@ export function StudentChat({
     })
   }, [items])
 
-  // Listen for session end
+  // If the teacher ends the session from their side, bolt the composer
+  // closed on the student side too — no polling needed, we already have
+  // a realtime channel here.
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -115,9 +122,6 @@ export function StudentChat({
     if (data) setScores(data)
   }
 
-  // Tagging runs async on the server after the stream closes. Poll the row
-  // a couple of times to pick up question_level (and the DB id for the
-  // optimistic user bubble) without waiting forever.
   async function refreshQuestionLevel(userKey: string, createdAfter: string) {
     const supabase = createClient()
     const {
@@ -152,9 +156,9 @@ export function StudentChat({
     }
   }
 
-  async function send() {
-    if (!input.trim() || streaming || sessionEnded) return
-    const userText = input.trim()
+  async function send(text?: string) {
+    const userText = (text ?? input).trim()
+    if (!userText || streaming || sessionEnded) return
     setInput("")
     const sendStartedAt = new Date().toISOString()
     const userKey = `u-pending-${Date.now()}`
@@ -202,9 +206,7 @@ export function StudentChat({
         )
       )
       setStreaming(false)
-      // refresh topic scores after a short delay (tagging happens async)
       setTimeout(refreshScores, 2000)
-      // pick up question_level as soon as the tagger writes it back
       refreshQuestionLevel(userKey, sendStartedAt).catch(() => {})
     } catch {
       toast.error("Network error")
@@ -220,135 +222,206 @@ export function StudentChat({
     }
   }
 
-  const messageCount = items.filter((x) => x.role === "user").length
-  const topicsDiscussed = scores.length
+  // First-question starters only show when the transcript is still empty.
+  const starters = [
+    `Why does ${session.title || "this"} work?`,
+    "When do I use it?",
+    "Walk me through an example",
+  ]
+
+  const sortedScores = useMemo(
+    () => [...scores].sort((a, b) => b.score - a.score),
+    [scores]
+  )
 
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_320px]">
-      <div className="flex min-h-[calc(100vh-8rem)] flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-slate-400">
-            {session.className} · {session.subject}
-          </p>
-          <h1 className="text-lg font-semibold text-brand-navy">
+    <div
+      className="flex w-full overflow-hidden bg-klaz-bg text-[13px] text-klaz-ink"
+      style={{ minHeight: "calc(100vh - 56px)" }}
+    >
+      {/* LEFT RAIL — class info + progress */}
+      <aside className="hidden w-[232px] shrink-0 flex-col border-r border-klaz-line bg-klaz-panel lg:flex">
+        <div className="border-b border-klaz-line2 px-4 py-3.5">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-klaz-faint">
+            Class
+          </div>
+          <div className="mt-1 text-[14px] font-medium text-klaz-ink">
+            {session.className}
+          </div>
+          <div className="text-[11.5px] text-klaz-muted">{session.subject}</div>
+        </div>
+
+        <div className="px-3 pt-3">
+          <div className="px-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-klaz-faint">
+            Today&apos;s focus
+          </div>
+          <div className="mt-1 rounded-md bg-klaz-line2 px-2.5 py-1.5 text-[12.5px] font-medium text-klaz-ink">
             {session.title}
-          </h1>
+          </div>
         </div>
-        <div
-          ref={scrollRef}
-          className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
-        >
-          {items.length === 0 ? (
-            <div className="grid h-full place-items-center text-center text-sm text-slate-500">
-              <div>
-                <p className="font-medium text-slate-700">
-                  Ask anything about today&apos;s lesson.
-                </p>
-                <p className="mt-1">
-                  The AI tutor only helps with the current topic.
-                </p>
-              </div>
-            </div>
-          ) : (
-            items.map((item) => (
-              // No questionLevel prop here — the "above/at/below lesson level"
-              // badge is teacher-facing only. Students shouldn't see their
-              // question flagged as "below lesson level" in real time —
-              // that discourages them from asking the basic clarifying
-              // questions we most want them to ask.
-              <ChatMessage
-                key={item.key}
-                role={item.role}
-                content={item.content}
-                isStreaming={
-                  item.role === "assistant" ? item.isStreaming : undefined
-                }
-              />
-            ))
-          )}
-          {streaming && items[items.length - 1]?.content === "" ? (
-            <div className="flex items-center gap-1 pl-9 text-xs text-slate-400">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
-            </div>
-          ) : null}
+
+        <div className="mt-4 px-4 font-mono text-[10.5px] uppercase tracking-[0.08em] text-klaz-faint">
+          Your topics
         </div>
-        <div className="border-t border-slate-100 p-3">
-          {sessionEnded ? (
-            <p className="rounded-md bg-slate-100 px-3 py-2 text-center text-sm text-slate-500">
-              This session has ended.
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-1">
+          {sortedScores.length === 0 ? (
+            <p className="mt-2 text-[11.5px] text-klaz-muted">
+              Ask a few questions to see your topic scores appear here.
             </p>
           ) : (
-            <div className="flex gap-2">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder="Ask the tutor…"
-                rows={2}
-                className="flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <Button
-                onClick={send}
-                disabled={streaming || input.trim().length === 0}
-                className="bg-brand-navy hover:bg-brand-navy/90"
+            sortedScores.map((t, i) => (
+              <div
+                key={t.topic}
+                className={cn(
+                  "py-1.5",
+                  i < sortedScores.length - 1 && "border-b border-klaz-line2"
+                )}
               >
-                Send
-              </Button>
-            </div>
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="truncate pr-2">{t.topic}</span>
+                  <span
+                    className="font-mono"
+                    style={{ color: scoreHex(t.score) }}
+                  >
+                    {t.score}
+                  </span>
+                </div>
+                <div className="mt-0.5 h-[3px] overflow-hidden rounded-[2px] bg-klaz-line2">
+                  <div
+                    className="h-full"
+                    style={{
+                      width: `${t.score}%`,
+                      background: scoreHex(t.score),
+                    }}
+                  />
+                </div>
+              </div>
+            ))
           )}
         </div>
-      </div>
+      </aside>
 
-      <aside className="space-y-4">
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle className="text-base text-brand-navy">
-              Session stats
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Questions asked</span>
-              <span className="font-semibold text-slate-800">
-                {messageCount}
-              </span>
+      {/* CHAT COLUMN */}
+      <main className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between border-b border-klaz-line bg-klaz-panel px-5 py-3 sm:px-7">
+          <div className="min-w-0">
+            <div className="truncate font-serif text-[20px] leading-none tracking-[-0.01em] md:text-[22px]">
+              {session.title}
+              <span className="text-klaz-accent">.</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Topics</span>
-              <span className="font-semibold text-slate-800">
-                {topicsDiscussed}
-              </span>
+            <div className="mt-1 text-[11.5px] text-klaz-muted">
+              Tutor scope:{" "}
+              <span className="font-medium text-klaz-ink2">
+                {session.className} — {session.subject}
+              </span>{" "}
+              · Questions outside this scope will be redirected to your
+              teacher.
             </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle className="text-base text-brand-navy">
-              My progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {scores.length === 0 ? (
-              <p className="text-xs text-slate-500">
-                Ask a few questions to see your topic scores appear here.
+          </div>
+        </div>
+
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto bg-klaz-bg px-4 py-5 sm:px-7"
+        >
+          <div className="mx-auto flex max-w-[760px] flex-col gap-4">
+            {items.length === 0 ? (
+              <div className="flex items-start gap-2.5">
+                <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-klaz-ink font-serif text-[15px] italic text-klaz-bg">
+                  K
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-klaz-faint">
+                    Klaz tutor
+                  </div>
+                  <div className="mt-1 text-[14px] leading-[1.55] text-klaz-ink">
+                    Hi — today we&apos;re focused on{" "}
+                    <span className="font-serif text-[16px] italic">
+                      {session.title}
+                    </span>
+                    . Ask me anything, or try one:
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {starters.map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => send(q)}
+                        className="rounded-full border border-klaz-line bg-klaz-panel2 px-3 py-[5px] text-[12px] text-klaz-ink2 transition hover:bg-klaz-line2"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              items.map((item) => (
+                <ChatMessage
+                  key={item.key}
+                  role={item.role}
+                  content={item.content}
+                  isStreaming={
+                    item.role === "assistant" ? item.isStreaming : undefined
+                  }
+                />
+              ))
+            )}
+            {streaming && items[items.length - 1]?.content === "" ? (
+              <div className="flex items-center gap-1 pl-9">
+                <span
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-klaz-accent"
+                  style={{ animationDelay: "-0.3s" }}
+                />
+                <span
+                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-klaz-accent"
+                  style={{ animationDelay: "-0.15s" }}
+                />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-klaz-accent" />
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="border-t border-klaz-line bg-klaz-panel px-4 py-3.5 sm:px-7">
+          <div className="mx-auto max-w-[760px]">
+            {sessionEnded ? (
+              <p className="rounded-md border border-klaz-line bg-klaz-panel2 px-3 py-2.5 text-center text-[12.5px] text-klaz-muted">
+                This session has ended.
               </p>
             ) : (
-              scores
-                .slice()
-                .sort((a, b) => a.score - b.score)
-                .map((s) => (
-                  <TopicScoreBar
-                    key={s.topic}
-                    topic={s.topic}
-                    score={s.score}
+              <>
+                <div className="flex items-end gap-2.5 rounded-xl border border-klaz-line bg-klaz-panel2 px-3 py-2">
+                  <textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    placeholder={`Ask about ${session.title || "the lesson"}…`}
+                    rows={1}
+                    className="flex-1 resize-none bg-transparent py-1.5 text-[13.5px] text-klaz-ink placeholder:text-klaz-muted focus:outline-none"
                   />
-                ))
+                  <button
+                    type="button"
+                    onClick={() => send()}
+                    disabled={streaming || input.trim().length === 0}
+                    aria-label="Send"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-klaz-accent text-[14px] text-white transition hover:bg-klaz-accent2 disabled:opacity-50"
+                  >
+                    ↑
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center justify-between font-mono text-[10.5px] uppercase tracking-[0.06em] text-klaz-faint">
+                  <span>
+                    Tutor scope: {session.className} · {session.subject}
+                  </span>
+                  <span className="hidden sm:inline">Shift + ↵ new line</span>
+                </div>
+              </>
             )}
-          </CardContent>
-        </Card>
-      </aside>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

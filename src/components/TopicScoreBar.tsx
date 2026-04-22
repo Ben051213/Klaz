@@ -1,4 +1,4 @@
-import { cn, scoreToColor } from "@/lib/utils"
+import { scoreHex } from "@/lib/utils"
 
 export function TopicScoreBar({
   topic,
@@ -10,17 +10,16 @@ export function TopicScoreBar({
   const clamped = Math.max(0, Math.min(100, score))
   return (
     <div>
-      <div className="flex items-center justify-between text-xs">
-        <span className="truncate font-medium text-slate-700">{topic}</span>
-        <span className="tabular-nums text-slate-500">{clamped}</span>
+      <div className="flex items-center justify-between text-[12px]">
+        <span className="truncate text-klaz-ink">{topic}</span>
+        <span className="font-mono text-[11px] tabular-nums text-klaz-muted">
+          {clamped}
+        </span>
       </div>
-      <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-[3px] bg-klaz-line2">
         <div
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            scoreToColor(clamped)
-          )}
-          style={{ width: `${clamped}%` }}
+          className="h-full transition-all duration-500"
+          style={{ width: `${clamped}%`, background: scoreHex(clamped) }}
         />
       </div>
     </div>

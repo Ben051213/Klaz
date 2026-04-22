@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   if (profile.role !== "teacher") redirect("/learn")
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-klaz-bg">
       <NavBar role="teacher" name={profile.name} />
       <main className="flex-1">{children}</main>
     </div>

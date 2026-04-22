@@ -3,9 +3,15 @@
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { cn, scoreToColor } from "@/lib/utils"
+import { Chip } from "@/components/klaz/Chip"
+import { Sparkline } from "@/components/klaz/Sparkline"
+import { RemoveStudentButton } from "@/components/RemoveStudentButton"
+import { cn, formatDateTime, formatDuration, scoreHex } from "@/lib/utils"
+
+// The analytics body for a class detail page — 4 KPI cards on top,
+// then a two-column grid: student ranking on the left, topic heatmap
+// + recent sessions stack on the right. Matches the "warm editorial"
+// hybrid direction.
 
 type Student = { id: string; name: string; email: string }
 type ScoreRow = { student_id: string; topic: string; score: number }
@@ -15,6 +21,7 @@ type SessionRow = {
   title: string
   status: "active" | "ended"
   started_at: string
+  ended_at: string | null
 }
 
 type SortMode = "weakest" | "strongest" | "most_active"
@@ -44,10 +51,10 @@ function Pill({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full px-3 py-1 text-xs font-medium transition",
+        "rounded-md px-2.5 py-1 text-[11.5px] font-medium transition",
         active
-          ? "bg-brand-navy text-white shadow-sm"
-          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          ? "bg-klaz-ink text-klaz-bg"
+          : "bg-transparent text-klaz-muted hover:bg-klaz-line2"
       )}
     >
       {label}
@@ -56,15 +63,19 @@ function Pill({
 }
 
 export function ClassAnalytics({
+  classId,
   roster,
   scores,
   messageCounts,
   activeSessionId,
+  sessions,
 }: {
+  classId: string
   roster: Student[]
   scores: ScoreRow[]
   messageCounts: MessageCountRow[]
   activeSessionId?: string | null
+  sessions: SessionRow[]
 }) {
   const [sort, setSort] = useState<SortMode>("weakest")
 
@@ -111,7 +122,6 @@ export function ClassAnalytics({
   const sorted = useMemo(() => {
     const copy = [...stats]
     if (sort === "weakest") {
-      // Students with no data fall to the bottom so the teacher sees real signal first.
       copy.sort((a, b) => {
         if (a.avg === null && b.avg === null) return 0
         if (a.avg === null) return 1
@@ -131,8 +141,7 @@ export function ClassAnalytics({
     return copy
   }, [stats, sort])
 
-  // Class-wide topic heatmap: average score per topic across all students,
-  // lowest first so the teacher sees what the class is struggling with.
+  // Class-wide topic heatmap — lowest first so what's struggling floats up.
   const topicHeatmap = useMemo(() => {
     const byTopic = new Map<string, number[]>()
     for (const s of scores) {
@@ -158,216 +167,337 @@ export function ClassAnalytics({
             .filter((s): s is StudentStat & { avg: number } => s.avg !== null)
             .reduce((sum, s) => sum + s.avg, 0) / studentsWithSignal
         )
+  const totalQuestions = stats.reduce((sum, s) => sum + s.questions, 0)
+  const atRiskCount = stats.filter((s) => s.avg !== null && s.avg < 50).length
+  const atRiskNames = stats
+    .filter((s) => s.avg !== null && s.avg < 50)
+    .map((s) => s.name.split(" ")[0])
+    .slice(0, 4)
+
+  // A naive trend series for the KPI sparklines — samples scores evenly
+  // across the class so the line has movement without faking history.
+  const scoreTrend = useMemo(() => {
+    if (scores.length === 0) return [50, 50]
+    const values = scores.map((s) => s.score)
+    const bucketCount = Math.min(12, values.length)
+    const step = values.length / bucketCount
+    const out: number[] = []
+    for (let i = 0; i < bucketCount; i++) {
+      const start = Math.floor(i * step)
+      const end = Math.floor((i + 1) * step)
+      const slice = values.slice(start, end)
+      const avg = slice.reduce((a, b) => a + b, 0) / Math.max(1, slice.length)
+      out.push(Math.round(avg))
+    }
+    return out
+  }, [scores])
+
+  const recentSessions = sessions.slice(0, 3)
+
+  const kpis = [
+    {
+      label: "Class average",
+      value: classAvg ?? "—",
+      suffix: classAvg !== null ? "/100" : "",
+      sub:
+        studentsWithSignal === 0
+          ? "no signal yet"
+          : `across ${studentsWithSignal} student${
+              studentsWithSignal === 1 ? "" : "s"
+            }`,
+      color: classAvg !== null ? scoreHex(classAvg) : "var(--color-klaz-ink)",
+    },
+    {
+      label: "Questions asked",
+      value: totalQuestions,
+      suffix: "",
+      sub: activeSessionId ? "live now" : "all sessions",
+      color: "var(--color-klaz-ok)",
+    },
+    {
+      label: "Topics tracked",
+      value: topicHeatmap.length,
+      suffix: "",
+      sub: "unique topics surfaced",
+      color: "var(--color-klaz-ink)",
+    },
+    {
+      label: "Students at risk",
+      value: atRiskCount,
+      suffix: roster.length > 0 ? `/${roster.length}` : "",
+      sub: atRiskNames.length > 0 ? atRiskNames.join(", ") : "none flagged",
+      color: atRiskCount > 0 ? "var(--color-klaz-bad)" : "var(--color-klaz-ink)",
+    },
+  ]
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="bg-white">
-          <CardContent className="py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Class average
-            </p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-brand-navy">
-              {classAvg ?? "—"}
-            </p>
-            <p className="text-xs text-slate-500">
-              across {studentsWithSignal} student
-              {studentsWithSignal === 1 ? "" : "s"} with activity
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white">
-          <CardContent className="py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Topics tracked
-            </p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-brand-navy">
-              {topicHeatmap.length}
-            </p>
-            <p className="text-xs text-slate-500">
-              unique topics surfaced so far
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white">
-          <CardContent className="py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Questions asked
-            </p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-brand-navy">
-              {stats.reduce((sum, s) => sum + s.questions, 0)}
-            </p>
-            <p className="text-xs text-slate-500">all students, all sessions</p>
-          </CardContent>
-        </Card>
+      {/* KPIs */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {kpis.map((k) => (
+          <div
+            key={k.label}
+            className="rounded-xl border border-klaz-line bg-klaz-panel p-3.5"
+          >
+            <div className="flex items-center justify-between">
+              <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-klaz-faint">
+                {k.label}
+              </div>
+              <span style={{ color: k.color }}>
+                <Sparkline values={scoreTrend} stroke="currentColor" />
+              </span>
+            </div>
+            <div
+              className="mt-1.5 flex items-baseline gap-1 font-serif leading-none tracking-[-0.02em]"
+              style={{ color: k.color }}
+            >
+              <span className="text-[34px]">{k.value}</span>
+              {k.suffix ? (
+                <span className="text-[14px] font-sans text-klaz-faint">
+                  {k.suffix}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-1 text-[11.5px] text-klaz-muted">{k.sub}</div>
+          </div>
+        ))}
       </div>
 
-      <Card className="bg-white">
-        <CardHeader className="flex flex-row items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-base text-brand-navy">
-              Student rankings
-            </CardTitle>
-            <p className="text-xs text-slate-500">
-              {sort === "weakest"
-                ? "Who needs the most help?"
-                : sort === "strongest"
-                ? "Who's mastering the material?"
-                : "Who's engaging the most?"}
-            </p>
+      <div className="grid gap-3.5 lg:grid-cols-[1.45fr_1fr]">
+        {/* Student ranking */}
+        <div className="rounded-xl border border-klaz-line bg-klaz-panel">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-klaz-line2 px-4 py-3">
+            <div>
+              <div className="text-[13px] font-semibold text-klaz-ink">
+                Students
+              </div>
+              <div className="text-[11.5px] text-klaz-muted">
+                {sort === "weakest"
+                  ? "Sorted by who needs the most help"
+                  : sort === "strongest"
+                    ? "Sorted by who's mastering material"
+                    : "Sorted by who's engaging the most"}
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <Pill
+                label="Weakest"
+                active={sort === "weakest"}
+                onClick={() => setSort("weakest")}
+              />
+              <Pill
+                label="Strongest"
+                active={sort === "strongest"}
+                onClick={() => setSort("strongest")}
+              />
+              <Pill
+                label="Most active"
+                active={sort === "most_active"}
+                onClick={() => setSort("most_active")}
+              />
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            <Pill
-              label="Weakest"
-              active={sort === "weakest"}
-              onClick={() => setSort("weakest")}
-            />
-            <Pill
-              label="Strongest"
-              active={sort === "strongest"}
-              onClick={() => setSort("strongest")}
-            />
-            <Pill
-              label="Most active"
-              active={sort === "most_active"}
-              onClick={() => setSort("most_active")}
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
           {sorted.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">
+            <p className="py-10 text-center text-[13px] text-klaz-muted">
               No students yet. Share the join code to get started.
             </p>
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {sorted.map((s, idx) => (
-                <li
-                  key={s.id}
-                  className="flex items-center gap-3 py-3 text-sm"
-                >
-                  <span className="w-5 text-right text-xs tabular-nums text-slate-400">
-                    {idx + 1}
-                  </span>
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-brand-navy/10 text-xs font-semibold text-brand-navy">
-                      {s.name.slice(0, 1).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-slate-800">
-                      {s.name}
-                    </p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
-                      <span>{s.questions} questions</span>
-                      <span>
-                        {s.topicCount} topic{s.topicCount === 1 ? "" : "s"}
-                      </span>
-                      {/* Only surface a "weakest" topic if it's actually
-                           weak (< 70). If the lowest-scored topic is
-                           already at 70+, the student is strong across
-                           the board and calling out a "weakest" would be
-                           misleading. Same logic in reverse for strongest:
-                           below 50 means everything's weak, so there's no
-                           real "strength" to celebrate. */}
-                      {s.weakest && s.weakest.score < 70 ? (
+            <ul>
+              {sorted.map((s, idx) => {
+                const atRisk = s.avg !== null && s.avg < 50
+                return (
+                  <li
+                    key={s.id}
+                    className={cn(
+                      "grid grid-cols-[20px_28px_1fr_80px_56px_auto] items-center gap-2.5 px-4 py-2.5",
+                      idx < sorted.length - 1 && "border-b border-klaz-line2",
+                      atRisk && "bg-[#fbefe9]"
+                    )}
+                  >
+                    <span className="text-right font-mono text-[11px] text-klaz-faint">
+                      {idx + 1}
+                    </span>
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="bg-klaz-line2 text-[11px] font-semibold text-klaz-ink">
+                        {s.name.slice(0, 1).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-medium text-klaz-ink">
+                        {s.name}
+                      </div>
+                      <div className="mt-[1px] flex flex-wrap gap-x-2.5 gap-y-0.5 text-[11px] text-klaz-muted">
                         <span>
-                          weakest:{" "}
-                          <span className="font-medium text-red-600">
-                            {s.weakest.topic} ({s.weakest.score})
-                          </span>
+                          {s.questions}q · {s.topicCount} topic
+                          {s.topicCount === 1 ? "" : "s"}
                         </span>
-                      ) : null}
-                      {s.strongest &&
-                      s.strongest.score >= 50 &&
-                      s.strongest.topic !== s.weakest?.topic ? (
-                        <span>
-                          strongest:{" "}
-                          <span className="font-medium text-emerald-600">
-                            {s.strongest.topic} ({s.strongest.score})
+                        {s.weakest && s.weakest.score < 70 ? (
+                          <span>
+                            weak:{" "}
+                            <span className="font-serif text-[13px] italic text-klaz-bad">
+                              {s.weakest.topic}
+                            </span>
                           </span>
-                        </span>
-                      ) : null}
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                  {s.avg !== null ? (
-                    <Badge
+                    <div>
+                      {s.avg !== null ? (
+                        <div className="h-1 w-20 overflow-hidden rounded-full bg-klaz-line2">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${s.avg}%`,
+                              background: scoreHex(s.avg),
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-klaz-faint">—</span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      {s.avg !== null ? (
+                        <span
+                          className="font-serif text-[22px] leading-none"
+                          style={{ color: scoreHex(s.avg) }}
+                        >
+                          {s.avg}
+                        </span>
+                      ) : (
+                        <span className="font-mono text-[10px] text-klaz-faint">
+                          new
+                        </span>
+                      )}
+                    </div>
+                    <RemoveStudentButton
+                      classId={classId}
+                      studentId={s.id}
+                      studentName={s.name}
+                    />
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Right column: heatmap + recent sessions */}
+        <div className="flex flex-col gap-3.5">
+          <div className="rounded-xl border border-klaz-line bg-klaz-panel">
+            <div className="border-b border-klaz-line2 px-4 py-3">
+              <div className="text-[13px] font-semibold text-klaz-ink">
+                Topic heatmap
+              </div>
+              <div className="text-[11.5px] text-klaz-muted">
+                Class-average per topic · weakest first
+              </div>
+            </div>
+            <div className="px-4 pb-3.5 pt-2">
+              {topicHeatmap.length === 0 ? (
+                <p className="py-6 text-center text-[12.5px] text-klaz-muted">
+                  No topic data yet. Scores appear after students start asking
+                  questions.
+                </p>
+              ) : (
+                <ul>
+                  {topicHeatmap.map((t, i) => (
+                    <li
+                      key={t.topic}
                       className={cn(
-                        s.avg >= 70
-                          ? "bg-emerald-500 hover:bg-emerald-500"
-                          : s.avg >= 40
-                          ? "bg-amber-500 hover:bg-amber-500"
-                          : "bg-red-500 hover:bg-red-500"
+                        "py-2",
+                        i < topicHeatmap.length - 1 &&
+                          "border-b border-klaz-line2"
                       )}
                     >
-                      {s.avg}
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary">—</Badge>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                      <div className="flex items-center justify-between text-[12.5px]">
+                        <span className="truncate text-klaz-ink">
+                          {t.topic}
+                        </span>
+                        <span className="font-mono text-[11px] text-klaz-muted">
+                          {t.avg} · {t.count}
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-[3px] bg-klaz-line2">
+                        <div
+                          className="h-full"
+                          style={{
+                            width: `${t.avg}%`,
+                            background: scoreHex(t.avg),
+                          }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
 
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle className="text-base text-brand-navy">
-            Topic heatmap
-          </CardTitle>
-          <p className="text-xs text-slate-500">
-            Class-average score per topic — lowest first, so you can see what
-            to revisit.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {topicHeatmap.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">
-              No topic data yet. Scores appear after students start asking
-              questions.
-            </p>
-          ) : (
-            <ul className="space-y-2.5">
-              {topicHeatmap.map((t) => (
-                <li key={t.topic}>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="truncate font-medium text-slate-700">
-                      {t.topic}
-                    </span>
-                    <span className="tabular-nums text-slate-500">
-                      {t.avg} · {t.count} student{t.count === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                  <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-500",
-                        scoreToColor(t.avg)
+          <div className="rounded-xl border border-klaz-line bg-klaz-panel">
+            <div className="flex items-center justify-between border-b border-klaz-line2 px-4 py-3">
+              <div className="text-[13px] font-semibold text-klaz-ink">
+                Recent sessions
+              </div>
+              {activeSessionId ? (
+                <Link
+                  href={`/dashboard/session/${activeSessionId}`}
+                  className="text-[11px] font-medium text-klaz-accent hover:underline"
+                >
+                  See live →
+                </Link>
+              ) : null}
+            </div>
+            {recentSessions.length === 0 ? (
+              <p className="py-6 text-center text-[12.5px] text-klaz-muted">
+                No sessions yet.
+              </p>
+            ) : (
+              <ul>
+                {recentSessions.map((s, i) => (
+                  <li
+                    key={s.id}
+                    className={cn(
+                      i < recentSessions.length - 1 &&
+                        "border-b border-klaz-line2"
+                    )}
+                  >
+                    <Link
+                      href={`/dashboard/session/${s.id}`}
+                      className="flex items-center gap-2.5 px-4 py-2.5 transition hover:bg-klaz-line2/40"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[12.5px] font-medium text-klaz-ink">
+                          {s.title}
+                        </div>
+                        <div className="mt-[1px] text-[11px] text-klaz-muted">
+                          {formatDateTime(s.started_at)} ·{" "}
+                          {formatDuration(
+                            s.started_at,
+                            s.ended_at ?? undefined
+                          )}
+                        </div>
+                      </div>
+                      {s.status === "active" ? (
+                        <Chip tone="live" mono>
+                          ● LIVE
+                        </Chip>
+                      ) : (
+                        <span
+                          className="text-[11px] text-klaz-faint"
+                          aria-hidden
+                        >
+                          ↗
+                        </span>
                       )}
-                      style={{ width: `${t.avg}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      {activeSessionId ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm">
-          A session is live right now —{" "}
-          <Link
-            href={`/dashboard/session/${activeSessionId}`}
-            className="font-semibold text-emerald-700 underline underline-offset-2"
-          >
-            jump to class pulse
-          </Link>{" "}
-          for real-time signals.
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-      ) : null}
+      </div>
     </div>
   )
 }

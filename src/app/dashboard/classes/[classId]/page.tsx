@@ -1,13 +1,18 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ClassAnalytics } from "@/components/ClassAnalytics"
 import { JoinCodeDisplay } from "@/components/JoinCodeDisplay"
-import { RemoveStudentButton } from "@/components/RemoveStudentButton"
+import { KlazTitle } from "@/components/klaz/KlazTitle"
+import { LiveHero } from "@/components/klaz/LiveHero"
 import { SessionStartModal } from "@/components/SessionStartModal"
 import { createClient } from "@/lib/supabase/server"
-import { formatDateTime, formatDuration } from "@/lib/utils"
+import { formatDuration } from "@/lib/utils"
+
+// Class detail — warm editorial layout matching the Klaz hybrid direction:
+//   Crumb + serif title + meta line with subject, grade, mono join code pill
+//   LiveHero if a session is currently running
+//   ClassAnalytics renders 4 KPI cards + student ranking + topic heatmap
+//   JoinCodeDisplay (QR) surfaces at the bottom for sharing
 
 export default async function ClassDetailPage({
   params,
@@ -29,8 +34,7 @@ export default async function ClassDetailPage({
   if (!klass) notFound()
   if (klass.teacher_id !== user.id) redirect("/dashboard")
 
-  // Roster, sessions and topic scores are fetched in parallel so the page
-  // doesn't waterfall four round-trips.
+  // Roster, sessions, and topic scores fan out in parallel.
   const [enrollmentsRes, sessionsRes, scoresRes] = await Promise.all([
     supabase
       .from("class_enrollments")
@@ -52,8 +56,6 @@ export default async function ClassDetailPage({
   type EnrollRowRaw = {
     id: string
     joined_at: string
-    // Supabase occasionally surfaces a to-one relation as a single-element
-    // array depending on FK inference — normalize both shapes.
     profiles: ProfileShape | ProfileShape[] | null
   }
   type EnrollRow = {
@@ -77,21 +79,17 @@ export default async function ClassDetailPage({
   }
   const sessionRows = (sessionsRes.data as SessionRow[] | null) ?? []
   const activeSession = sessionRows.find((s) => s.status === "active")
-  const pastSessions = sessionRows.filter((s) => s.status === "ended")
 
   const scoresFromTable =
     (scoresRes.data as
       | { student_id: string; topic: string; score: number }[]
       | null) ?? []
 
-  // Fetch messages for question counts AND to backfill the topic list.
-  // Belt-and-suspenders: student_topic_scores is the canonical source for
-  // real scores, but if the write pipeline had a hiccup on a given message
-  // (RLS quirk, Haiku timeout, etc.) we still want the topic to appear on
-  // the heatmap at baseline 50 rather than vanish from the teacher view.
+  // Backfill: if a message has topics but no score row yet (write-path hiccup),
+  // still surface that (student, topic) pair on the heatmap at baseline 50.
   const sessionIds = sessionRows.map((s) => s.id)
   const counts = new Map<string, number>()
-  const topicsFromMessages = new Map<string, Set<string>>() // student_id → topics
+  const topicsFromMessages = new Map<string, Set<string>>()
   if (sessionIds.length > 0) {
     const { data: msgRows } = await supabase
       .from("messages")
@@ -112,9 +110,6 @@ export default async function ClassDetailPage({
     ([student_id, question_count]) => ({ student_id, question_count })
   )
 
-  // Merge: start with the real scored rows, then add synthetic baseline
-  // entries for any (student, topic) pair that appears in messages but
-  // has no score row yet.
   const seen = new Set(
     scoresFromTable.map((s) => `${s.student_id}::${s.topic}`)
   )
@@ -132,8 +127,9 @@ export default async function ClassDetailPage({
   }
 
   const rosterStudents = roster
-    .filter((r): r is EnrollRow & { profiles: NonNullable<EnrollRow["profiles"]> } =>
-      r.profiles !== null
+    .filter(
+      (r): r is EnrollRow & { profiles: NonNullable<EnrollRow["profiles"]> } =>
+        r.profiles !== null
     )
     .map((r) => ({
       id: r.profiles.id,
@@ -141,31 +137,101 @@ export default async function ClassDetailPage({
       email: r.profiles.email,
     }))
 
+  // LiveHero needs hottest topic + at-risk summary when the session is active.
+  let liveHero: React.ReactNode = null
+  if (activeSession) {
+    const { data: msgs } = await supabase
+      .from("messages")
+      .select("student_id, topics")
+      .eq("session_id", activeSession.id)
+    type Msg = { student_id: string; topics: string[] | null }
+    const mList = (msgs as Msg[] | null) ?? []
+    const active = new Set(mList.map((m) => m.student_id))
+    const topicCount = new Map<string, number>()
+    for (const m of mList) {
+      if (!m.topics) continue
+      for (const t of m.topics) topicCount.set(t, (topicCount.get(t) ?? 0) + 1)
+    }
+    const hottest = [...topicCount.entries()].sort((a, b) => b[1] - a[1])[0]
+
+    // Aggregate per-student avg from the same scores we already fetched.
+    const perStudent = new Map<string, { total: number; n: number; name: string }>()
+    const nameById = new Map(rosterStudents.map((s) => [s.id, s.name]))
+    for (const s of scoresFromTable) {
+      const entry = perStudent.get(s.student_id) ?? {
+        total: 0,
+        n: 0,
+        name: nameById.get(s.student_id) ?? "Student",
+      }
+      entry.total += s.score
+      entry.n += 1
+      perStudent.set(s.student_id, entry)
+    }
+    const atRisk = [...perStudent.entries()]
+      .map(([id, v]) => ({ id, name: v.name, avg: v.total / Math.max(1, v.n) }))
+      .filter((s) => s.avg < 65)
+      .sort((a, b) => a.avg - b.avg)
+
+    liveHero = (
+      <div className="mt-4">
+        <LiveHero
+          compact
+          classLabel={klass.name}
+          topic={activeSession.title}
+          elapsed={formatDuration(activeSession.started_at)}
+          onlineCount={active.size}
+          totalCount={rosterStudents.length}
+          questionCount={mList.length}
+          hottestTopic={hottest?.[0] ?? null}
+          hottestPercent={
+            hottest
+              ? Math.round((hottest[1] / Math.max(1, mList.length)) * 100)
+              : null
+          }
+          atRisk={atRisk.map((s) => ({ id: s.id, name: s.name }))}
+          atRiskCount={atRisk.length}
+          sessionId={activeSession.id}
+        />
+      </div>
+    )
+  }
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link
-            href="/dashboard"
-            className="text-xs text-slate-500 hover:text-slate-700"
-          >
-            ← Back to classes
-          </Link>
-          <h1 className="mt-1 text-2xl font-bold text-brand-navy">
-            {klass.name}
-          </h1>
-          <p className="text-sm text-slate-500">
-            {klass.subject}
-            {klass.grade ? ` · ${klass.grade}` : ""}
-          </p>
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+      <Link
+        href="/dashboard"
+        className="font-mono text-[11px] uppercase tracking-[0.08em] text-klaz-faint transition hover:text-klaz-ink2"
+      >
+        ← Classes
+      </Link>
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <KlazTitle size="md">{klass.name}</KlazTitle>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-klaz-muted">
+            <span>{klass.subject}</span>
+            {klass.grade ? <span>· {klass.grade}</span> : null}
+            <span>·</span>
+            <span className="inline-flex items-center rounded-full bg-klaz-line2 px-2 py-[1px] font-mono tracking-[0.06em] text-klaz-ink2">
+              {klass.join_code}
+            </span>
+            <span>·</span>
+            <span>
+              {rosterStudents.length} enrolled
+              {sessionRows.length > 0
+                ? ` · ${sessionRows.length} session${
+                    sessionRows.length === 1 ? "" : "s"
+                  }`
+                : ""}
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {activeSession ? (
             <Link
               href={`/dashboard/session/${activeSession.id}`}
-              className="inline-flex items-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+              className="inline-flex items-center gap-1.5 rounded-md bg-klaz-accent px-4 py-2 text-[13.5px] font-medium text-white transition hover:bg-klaz-accent2"
             >
-              Go to live session →
+              Enter pulse →
             </Link>
           ) : (
             <SessionStartModal classId={klass.id} />
@@ -173,113 +239,71 @@ export default async function ClassDetailPage({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <JoinCodeDisplay code={klass.join_code} classId={klass.id} />
-        </div>
-        <Card className="lg:col-span-2 bg-white">
-          <CardHeader>
-            <CardTitle className="text-base text-brand-navy">
-              Student roster ({roster.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {roster.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                No students yet. Share the join code to get started.
-              </p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {roster.map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex items-center justify-between gap-2 py-2 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-800">
-                        {r.profiles?.name ?? "Student"}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        {r.profiles?.email}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="hidden text-xs text-slate-400 sm:inline">
-                        Joined {formatDateTime(r.joined_at)}
-                      </span>
-                      {r.profiles ? (
-                        <RemoveStudentButton
-                          classId={klass.id}
-                          studentId={r.profiles.id}
-                          studentName={r.profiles.name}
-                        />
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {liveHero}
 
       <div className="mt-6">
-        <h2 className="mb-3 text-lg font-semibold text-brand-navy">
-          Class analytics
-        </h2>
         <ClassAnalytics
+          classId={klass.id}
           roster={rosterStudents}
           scores={scores}
           messageCounts={messageCounts}
           activeSessionId={activeSession?.id ?? null}
+          sessions={sessionRows}
         />
       </div>
 
-      <Card className="mt-6 bg-white">
-        <CardHeader>
-          <CardTitle className="text-base text-brand-navy">
-            Past sessions
-          </CardTitle>
-          <p className="text-xs text-slate-500">
-            Click a session to review its full log and AI-generated follow-ups.
+      <div className="mt-6 grid gap-3.5 lg:grid-cols-[1fr_1.4fr]">
+        <div className="rounded-xl border border-klaz-line bg-klaz-panel p-4">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-klaz-faint">
+            Share with students
+          </div>
+          <div className="mt-1 font-serif text-[20px] text-klaz-ink">
+            Join this class<span className="text-klaz-accent">.</span>
+          </div>
+          <p className="mt-1 text-[12.5px] text-klaz-muted">
+            Students scan the QR or type the code at{" "}
+            <span className="font-medium text-klaz-ink">klaz.app/join</span>.
           </p>
-        </CardHeader>
-        <CardContent>
-          {pastSessions.length === 0 ? (
-            <p className="text-sm text-slate-500">No past sessions yet.</p>
+          <div className="mt-3">
+            <JoinCodeDisplay code={klass.join_code} classId={klass.id} />
+          </div>
+        </div>
+        <div className="rounded-xl border border-klaz-line bg-klaz-panel p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-klaz-faint">
+                Roster
+              </div>
+              <div className="text-[13px] font-semibold text-klaz-ink">
+                {rosterStudents.length} enrolled
+              </div>
+            </div>
+          </div>
+          {roster.length === 0 ? (
+            <p className="mt-4 text-[12.5px] text-klaz-muted">
+              No students yet. Share the join code to get started.
+            </p>
           ) : (
-            <ul className="divide-y divide-slate-100">
-              {pastSessions.map((s) => (
-                <li key={s.id}>
-                  <Link
-                    href={`/dashboard/session/${s.id}`}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md px-2 py-3 text-sm transition hover:bg-slate-50"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-800">
-                        {s.title}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {formatDateTime(s.started_at)} ·{" "}
-                        {formatDuration(
-                          s.started_at,
-                          s.ended_at ?? undefined
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">Ended</Badge>
-                      <span className="text-slate-400" aria-hidden>
-                        →
-                      </span>
-                    </div>
-                  </Link>
+            <ul className="mt-3 divide-y divide-klaz-line2">
+              {roster.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex items-center justify-between gap-2 py-2 text-[12.5px]"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-klaz-ink">
+                      {r.profiles?.name ?? "Student"}
+                    </p>
+                    <p className="truncate text-[11.5px] text-klaz-muted">
+                      {r.profiles?.email}
+                    </p>
+                  </div>
                 </li>
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

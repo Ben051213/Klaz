@@ -28,28 +28,28 @@ export function JoinCodeDisplay({ code }: { code: string; classId?: string }) {
   }
 
   return (
-    <div className="flex flex-col items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:gap-6">
+    <div className="flex flex-col items-start gap-3 rounded-xl border border-klaz-line bg-klaz-panel p-4 sm:flex-row sm:items-center sm:gap-6">
       {qr ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={qr}
           alt="Join code QR"
-          className="h-32 w-32 rounded-md border border-slate-100 bg-white"
+          className="h-28 w-28 rounded-md border border-klaz-line2 bg-white"
         />
       ) : (
-        <div className="h-32 w-32 animate-pulse rounded-md bg-slate-100" />
+        <div className="h-28 w-28 animate-pulse rounded-md bg-klaz-line2" />
       )}
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        <p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-klaz-faint">
           Join code
         </p>
-        <p className="mt-1 font-mono text-3xl font-bold tracking-widest text-brand-navy">
+        <p className="mt-1 font-mono text-[28px] font-semibold tracking-[0.08em] text-klaz-ink">
           {code}
         </p>
         <Button
           variant="outline"
           size="sm"
-          className="mt-2"
+          className="mt-2 rounded-md border-klaz-line bg-klaz-panel2 text-[12.5px] font-medium text-klaz-ink2 hover:bg-klaz-line2"
           onClick={copy}
           type="button"
         >

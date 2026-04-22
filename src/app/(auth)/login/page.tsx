@@ -4,10 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { KlazTitle } from "@/components/klaz/KlazTitle"
 import { createClient } from "@/lib/supabase/client"
 
 export default function LoginPage() {
@@ -34,52 +31,70 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl text-brand-navy">Welcome back</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-brand-navy hover:bg-brand-navy/90"
+    <div>
+      <div className="font-mono text-[11.5px] uppercase tracking-[0.1em] text-klaz-faint">
+        Welcome back
+      </div>
+      <KlazTitle size="md" className="mt-2">
+        Sign in to Klaz
+      </KlazTitle>
+      <p className="mt-2 text-[13px] text-klaz-muted">
+        Teachers and students, same door.
+      </p>
+
+      <form onSubmit={onSubmit} className="mt-7 space-y-4">
+        <div>
+          <label
+            htmlFor="email"
+            className="block font-mono text-[11.5px] uppercase tracking-[0.06em] text-klaz-muted"
           >
-            {loading ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-        <p className="mt-4 text-center text-sm text-slate-500">
-          New to Klaz?{" "}
-          <Link
-            href="/signup"
-            className="font-medium text-brand-teal hover:underline"
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+            className="mt-1.5 w-full rounded-lg border border-klaz-line bg-klaz-panel2 px-3 py-2.5 text-[13.5px] text-klaz-ink outline-none transition focus:border-klaz-accent focus:ring-2 focus:ring-klaz-accent/20"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="password"
+            className="block font-mono text-[11.5px] uppercase tracking-[0.06em] text-klaz-muted"
           >
-            Create an account
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+            className="mt-1.5 w-full rounded-lg border border-klaz-line bg-klaz-panel2 px-3 py-2.5 text-[13.5px] text-klaz-ink outline-none transition focus:border-klaz-accent focus:ring-2 focus:ring-klaz-accent/20"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="mt-2 w-full rounded-lg bg-klaz-accent px-4 py-3 text-[14px] font-medium text-white transition hover:bg-klaz-accent2 disabled:opacity-60"
+        >
+          {loading ? "Signing in…" : "Sign in →"}
+        </button>
+      </form>
+
+      <p className="mt-5 text-center text-[13px] text-klaz-muted">
+        New to Klaz?{" "}
+        <Link
+          href="/signup"
+          className="border-b border-klaz-ink font-medium text-klaz-ink"
+        >
+          Create an account
+        </Link>
+      </p>
+    </div>
   )
 }

@@ -46,7 +46,7 @@ export function RemoveStudentButton({
       size="sm"
       disabled={pending}
       onClick={handleRemove}
-      className="text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+      className="h-auto px-2 py-1 text-[11px] font-medium text-klaz-bad hover:bg-klaz-bad-bg hover:text-klaz-bad"
     >
       {pending ? "Removing…" : "Remove"}
     </Button>

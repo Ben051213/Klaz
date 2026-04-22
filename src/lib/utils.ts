@@ -35,3 +35,34 @@ export function scoreToColor(score: number): string {
   if (score >= 40) return "bg-amber-500"
   return "bg-red-500"
 }
+
+// "Updated 2h ago" style relative labels for the class table and recent
+// sessions list. Keeps dates feeling live without a heavy i18n dep.
+export function formatRelative(date: string | null | undefined): string {
+  if (!date) return "—"
+  const diff = Date.now() - new Date(date).getTime()
+  if (diff < 60_000) return "just now"
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })
+}
+
+// Map a 0–100 score onto the semantic traffic-light palette so the colour
+// scale stays consistent across sparklines, heatmap bars, and KPI text.
+export function scoreTone(score: number): "ok" | "warn" | "bad" {
+  if (score >= 70) return "ok"
+  if (score >= 50) return "warn"
+  return "bad"
+}
+
+export function scoreHex(score: number): string {
+  const t = scoreTone(score)
+  return t === "ok" ? "#4a7c3a" : t === "warn" ? "#b86a12" : "#9c2b2b"
+}
