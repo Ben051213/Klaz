@@ -40,9 +40,29 @@ How to teach:
 export type ConfidenceSignal = "confused" | "partial" | "understood"
 export type QuestionLevel = "below" | "at" | "above"
 
+// Strip ```json ... ``` fences and any stray prose around the first { ... }
+// object. Haiku sometimes ignores "return ONLY JSON" and wraps the reply,
+// which throws JSON.parse and silently kills the whole tagging pipeline.
+function extractJsonObject(raw: string): string {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim()
+  // Greedy extract the first balanced-looking {...} — good enough for the
+  // small tagging payload and resilient to leading prose.
+  const first = cleaned.indexOf("{")
+  const last = cleaned.lastIndexOf("}")
+  if (first !== -1 && last !== -1 && last > first) {
+    return cleaned.slice(first, last + 1)
+  }
+  return cleaned
+}
+
 export async function tagMessage(params: {
   studentText: string
   aiResponse: string
+  sessionTitle?: string | null
   sessionTopics: string[]
   lessonSummary?: string | null
   grade?: string | null
@@ -98,14 +118,29 @@ Rules for "question_level" — compare the question to the declared lesson level
 
     const raw =
       response.content[0].type === "text" ? response.content[0].text : "{}"
-    const parsed = JSON.parse(raw.trim()) as {
+    let parsed: {
       topics?: unknown
       confidence_signal?: unknown
       question_level?: unknown
+    } = {}
+    try {
+      parsed = JSON.parse(extractJsonObject(raw))
+    } catch (parseErr) {
+      // Keep parsed = {}; we'll still write a baseline tag with the session
+      // title as a fallback topic so the heatmap isn't empty.
+      console.error("[tagMessage] JSON parse failed", {
+        preview: raw.slice(0, 200),
+        parseErr,
+      })
     }
-    const topics: string[] = Array.isArray(parsed.topics)
+    let topics: string[] = Array.isArray(parsed.topics)
       ? parsed.topics.filter((t): t is string => typeof t === "string")
       : []
+    // Fallback: if Haiku returned no topics, tag the message with the session
+    // title so analytics isn't silently empty. Still better than nothing.
+    if (topics.length === 0 && params.sessionTitle?.trim()) {
+      topics = [params.sessionTitle.trim()]
+    }
     const signalCandidates: ConfidenceSignal[] = [
       "confused",
       "partial",
@@ -147,8 +182,10 @@ Rules for "question_level" — compare the question to the declared lesson level
         level
       )
     }
-  } catch {
-    // Tagging failure must never break the chat — silently ignore
+  } catch (err) {
+    // Tagging failure must never break the chat — but surface it to Vercel
+    // logs so we can debug why the heatmap is empty next time.
+    console.error("[tagMessage] failed", err)
   }
 }
 

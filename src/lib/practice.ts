@@ -47,13 +47,18 @@ export async function generatePracticeForSession(
 
   // Run per-student generation in parallel — each student is one Haiku call.
   // Serial would blow past the Vercel 10-30s function timeout for larger
-  // classes.
-  const results = await Promise.all(
+  // classes. allSettled (not all) so one student's failure doesn't block
+  // the rest.
+  const results = await Promise.allSettled(
     studentIds.map((studentId) =>
       generateForStudent(supabase, sessionId, s.class_id, studentId, grade)
     )
   )
-  const generated = results.reduce((sum, r) => sum + r, 0)
+  let generated = 0
+  for (const r of results) {
+    if (r.status === "fulfilled") generated += r.value
+    else console.error("[practice] per-student generation failed", r.reason)
+  }
   return { generated }
 }
 
@@ -95,11 +100,19 @@ async function generateForStudent(
     })
     const raw =
       response.content[0].type === "text" ? response.content[0].text : "[]"
-    const cleaned = raw
+    // Strip ```json fences + extract the first [...] array, same defense as
+    // tagMessage. Haiku sometimes wraps even when told not to.
+    const stripped = raw
       .trim()
-      .replace(/^```(?:json)?/, "")
-      .replace(/```$/, "")
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/i, "")
       .trim()
+    const first = stripped.indexOf("[")
+    const last = stripped.lastIndexOf("]")
+    const cleaned =
+      first !== -1 && last !== -1 && last > first
+        ? stripped.slice(first, last + 1)
+        : stripped
     const parsed: {
       question?: string
       answer?: string
@@ -119,7 +132,8 @@ async function generateForStudent(
           ? (it.difficulty as Difficulty)
           : "medium",
       }))
-  } catch {
+  } catch (err) {
+    console.error("[practice] Haiku/parse failed for student", studentId, err)
     items = []
   }
 

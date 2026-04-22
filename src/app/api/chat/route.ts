@@ -175,6 +175,7 @@ export async function POST(request: Request) {
         await tagMessage({
           studentText: message,
           aiResponse: fullText,
+          sessionTitle: normalized.title ?? null,
           sessionTopics,
           lessonSummary: normalized.ai_context ?? null,
           grade: normalized.classes?.grade ?? null,
