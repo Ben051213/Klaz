@@ -20,12 +20,9 @@ export function NavBar({ role, name }: { role: Role; name?: string }) {
     role === "teacher"
       ? [
           { href: "/dashboard", label: "Classes" },
-          { href: "/dashboard/practice", label: "Practice Review" },
+          { href: "/dashboard/practice", label: "Suggested Follow-ups" },
         ]
-      : [
-          { href: "/learn", label: "My Classes" },
-          { href: "/learn/practice", label: "My Practice" },
-        ]
+      : [{ href: "/learn", label: "My Classes" }]
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">

@@ -11,6 +11,57 @@ type Message = {
   topics: string[] | null
 }
 
+type StudentSummary = {
+  strengths: string[]
+  weaknesses: string[]
+  topics_covered: string[]
+  recommended_focus: string
+  overall: string
+}
+
+const EMPTY_SUMMARY: StudentSummary = {
+  strengths: [],
+  weaknesses: [],
+  topics_covered: [],
+  recommended_focus: "",
+  overall: "",
+}
+
+function SummarySection({
+  label,
+  items,
+  tone = "neutral",
+}: {
+  label: string
+  items: string[]
+  tone?: "strong" | "weak" | "neutral"
+}) {
+  if (items.length === 0) return null
+  const dot =
+    tone === "strong"
+      ? "bg-emerald-500"
+      : tone === "weak"
+      ? "bg-red-500"
+      : "bg-slate-400"
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <ul className="mt-1 space-y-1 text-sm text-slate-700">
+        {items.map((t, i) => (
+          <li key={i} className="flex gap-2">
+            <span
+              className={`mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${dot}`}
+            />
+            <span>{t}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function StudentDetailPanel({
   sessionId,
   studentId,
@@ -24,7 +75,7 @@ export function StudentDetailPanel({
   topicScores: { topic: string; score: number }[]
   messages: Message[]
 }) {
-  const [summary, setSummary] = useState<string | null>(null)
+  const [summary, setSummary] = useState<StudentSummary | null>(null)
   const [loadingSummary, setLoadingSummary] = useState(true)
 
   useEffect(() => {
@@ -36,11 +87,13 @@ export function StudentDetailPanel({
       body: JSON.stringify({ studentId }),
     })
       .then((r) => r.json())
-      .then((data) => {
+      .then((data: { summary?: Partial<StudentSummary> }) => {
         if (cancelled) return
-        setSummary(data.summary || "Summary unavailable.")
+        setSummary({ ...EMPTY_SUMMARY, ...(data.summary ?? {}) })
       })
-      .catch(() => setSummary("Summary unavailable."))
+      .catch(() =>
+        setSummary({ ...EMPTY_SUMMARY, overall: "Summary unavailable." })
+      )
       .finally(() => {
         if (!cancelled) setLoadingSummary(false)
       })
@@ -49,16 +102,58 @@ export function StudentDetailPanel({
     }
   }, [sessionId, studentId])
 
+  const hasAnySummary =
+    summary &&
+    (summary.overall ||
+      summary.strengths.length ||
+      summary.weaknesses.length ||
+      summary.topics_covered.length ||
+      summary.recommended_focus)
+
   return (
     <div className="mt-3 space-y-4 rounded-lg border border-slate-100 bg-slate-50/60 p-4">
       <div>
         <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           AI summary
         </h4>
-        {loadingSummary ? (
-          <div className="mt-1 h-12 animate-pulse rounded bg-slate-100" />
+        {loadingSummary || !summary ? (
+          <div className="mt-2 space-y-2">
+            <div className="h-3 w-2/3 animate-pulse rounded bg-slate-200" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-slate-200" />
+          </div>
+        ) : !hasAnySummary ? (
+          <p className="mt-1 text-sm text-slate-500">Nothing to summarize yet.</p>
         ) : (
-          <p className="mt-1 text-sm text-slate-700">{summary}</p>
+          <div className="mt-2 space-y-3">
+            {summary.overall ? (
+              <p className="text-sm text-slate-800">{summary.overall}</p>
+            ) : null}
+            <SummarySection
+              label="Strengths"
+              items={summary.strengths}
+              tone="strong"
+            />
+            <SummarySection
+              label="Weaknesses"
+              items={summary.weaknesses}
+              tone="weak"
+            />
+            <SummarySection
+              label="Topics covered"
+              items={summary.topics_covered}
+              tone="neutral"
+            />
+            {summary.recommended_focus ? (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Recommended focus
+                </p>
+                <p className="mt-1 text-sm text-slate-700">
+                  {summary.recommended_focus}
+                </p>
+              </div>
+            ) : null}
+          </div>
         )}
       </div>
 
@@ -92,9 +187,7 @@ export function StudentDetailPanel({
                 {m.confidence_signal ? (
                   <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">
                     {m.confidence_signal}
-                    {m.topics?.length
-                      ? ` · ${m.topics.join(", ")}`
-                      : ""}
+                    {m.topics?.length ? ` · ${m.topics.join(", ")}` : ""}
                   </p>
                 ) : null}
               </li>

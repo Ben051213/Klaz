@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ClassAnalytics } from "@/components/ClassAnalytics"
 import { JoinCodeDisplay } from "@/components/JoinCodeDisplay"
 import { SessionStartModal } from "@/components/SessionStartModal"
 import { createClient } from "@/lib/supabase/server"
@@ -27,24 +28,36 @@ export default async function ClassDetailPage({
   if (!klass) notFound()
   if (klass.teacher_id !== user.id) redirect("/dashboard")
 
-  const { data: enrollments } = await supabase
-    .from("class_enrollments")
-    .select("id, joined_at, profiles(id, name, email)")
-    .eq("class_id", classId)
-    .order("joined_at", { ascending: true })
+  // Roster, sessions and topic scores are fetched in parallel so the page
+  // doesn't waterfall four round-trips.
+  const [enrollmentsRes, sessionsRes, scoresRes, messagesRes] =
+    await Promise.all([
+      supabase
+        .from("class_enrollments")
+        .select("id, joined_at, profiles(id, name, email)")
+        .eq("class_id", classId)
+        .order("joined_at", { ascending: true }),
+      supabase
+        .from("sessions")
+        .select("id, title, status, started_at, ended_at")
+        .eq("class_id", classId)
+        .order("started_at", { ascending: false }),
+      supabase
+        .from("student_topic_scores")
+        .select("student_id, topic, score")
+        .eq("class_id", classId),
+      supabase
+        .from("messages")
+        .select("student_id, sessions!inner(class_id)")
+        .eq("sessions.class_id", classId),
+    ])
 
   type EnrollRow = {
     id: string
     joined_at: string
     profiles: { id: string; name: string; email: string } | null
   }
-  const roster = (enrollments as EnrollRow[] | null) ?? []
-
-  const { data: sessions } = await supabase
-    .from("sessions")
-    .select("id, title, status, started_at, ended_at")
-    .eq("class_id", classId)
-    .order("started_at", { ascending: false })
+  const roster = (enrollmentsRes.data as EnrollRow[] | null) ?? []
 
   type SessionRow = {
     id: string
@@ -53,9 +66,36 @@ export default async function ClassDetailPage({
     started_at: string
     ended_at: string | null
   }
-  const sessionRows = (sessions as SessionRow[] | null) ?? []
+  const sessionRows = (sessionsRes.data as SessionRow[] | null) ?? []
   const activeSession = sessionRows.find((s) => s.status === "active")
   const pastSessions = sessionRows.filter((s) => s.status === "ended")
+
+  const scores =
+    (scoresRes.data as
+      | { student_id: string; topic: string; score: number }[]
+      | null) ?? []
+
+  // Roll up per-student message counts client-side since Postgres/Supabase
+  // doesn't expose SQL GROUP BY through PostgREST without a view.
+  const counts = new Map<string, number>()
+  for (const row of (messagesRes.data as
+    | { student_id: string }[]
+    | null) ?? []) {
+    counts.set(row.student_id, (counts.get(row.student_id) ?? 0) + 1)
+  }
+  const messageCounts = Array.from(counts.entries()).map(
+    ([student_id, question_count]) => ({ student_id, question_count })
+  )
+
+  const rosterStudents = roster
+    .filter((r): r is EnrollRow & { profiles: NonNullable<EnrollRow["profiles"]> } =>
+      r.profiles !== null
+    )
+    .map((r) => ({
+      id: r.profiles.id,
+      name: r.profiles.name,
+      email: r.profiles.email,
+    }))
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
@@ -130,7 +170,19 @@ export default async function ClassDetailPage({
         </Card>
       </div>
 
-      <Card className="mt-4 bg-white">
+      <div className="mt-6">
+        <h2 className="mb-3 text-lg font-semibold text-brand-navy">
+          Class analytics
+        </h2>
+        <ClassAnalytics
+          roster={rosterStudents}
+          scores={scores}
+          messageCounts={messageCounts}
+          activeSessionId={activeSession?.id ?? null}
+        />
+      </div>
+
+      <Card className="mt-6 bg-white">
         <CardHeader>
           <CardTitle className="text-base text-brand-navy">
             Past sessions
