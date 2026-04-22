@@ -154,17 +154,20 @@ export async function POST(request: Request) {
       } catch (err) {
         controller.error(err)
         return
-      } finally {
-        controller.close()
       }
 
-      // Persist the AI response and run tagging. Awaited (not fire-and-
-      // forget) because Vercel serverless can terminate the function the
-      // moment the stream controller closes — and without tagging the
-      // analytics (scores, heatmap, rankings) have nothing to display.
-      // The stream response has already been sent to the client, so this
-      // await only delays when the function terminates, not what the user
-      // sees.
+      // Persist the AI response and run tagging BEFORE closing the stream.
+      // The earlier version ran this after controller.close() — which on
+      // Vercel means the serverless function could be torn down the moment
+      // the response body completes, so tagging silently never ran (no
+      // scores, no heatmap, no "[tagMessage]" log lines). Keeping the
+      // controller open here holds the function alive while tagging finishes.
+      // The client has already received every text chunk; they just wait a
+      // few extra hundred ms for fetch() to resolve.
+      console.log("[chat] stream complete, starting persist+tag", {
+        messageId: insertedMessage.id,
+        textLen: fullText.length,
+      })
       try {
         const sb = await createClient()
         await sb
@@ -184,9 +187,11 @@ export async function POST(request: Request) {
           studentId: user.id,
           classId: session.class_id,
         })
-      } catch {
-        // Never surface persistence failures to the stream.
+        console.log("[chat] persist+tag done", { messageId: insertedMessage.id })
+      } catch (err) {
+        console.error("[chat] persist+tag failed", err)
       }
+      controller.close()
     },
   })
 

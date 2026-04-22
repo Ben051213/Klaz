@@ -71,6 +71,12 @@ export async function tagMessage(params: {
   studentId: string
   classId: string
 }): Promise<void> {
+  console.log("[tagMessage] start", {
+    messageId: params.messageId,
+    studentId: params.studentId,
+    classId: params.classId,
+    textLen: params.studentText.length,
+  })
   try {
     const existingList =
       params.sessionTopics.length > 0 ? params.sessionTopics.join(", ") : ""
@@ -172,6 +178,12 @@ Rules for "question_level" — compare the question to the declared lesson level
       .update({ question_level: level })
       .eq("id", params.messageId)
 
+    console.log("[tagMessage] parsed", {
+      messageId: params.messageId,
+      topics,
+      signal,
+      level,
+    })
     for (const topic of topics) {
       await upsertTopicScore(
         supabase,
@@ -182,6 +194,10 @@ Rules for "question_level" — compare the question to the declared lesson level
         level
       )
     }
+    console.log("[tagMessage] done — wrote scores", {
+      messageId: params.messageId,
+      topicCount: topics.length,
+    })
   } catch (err) {
     // Tagging failure must never break the chat — but surface it to Vercel
     // logs so we can debug why the heatmap is empty next time.
