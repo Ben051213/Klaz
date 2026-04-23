@@ -12,6 +12,7 @@ export function buildSystemPrompt(
     classes?: {
       subject: string
       grade?: string | null
+      tutor_tone?: string | null
       profiles?: { name: string } | null
     } | null
   },
@@ -28,6 +29,11 @@ export function buildSystemPrompt(
   const grade = session.classes?.grade || ""
   const context = session.ai_context || ""
   const gradeLabel = grade ? ` (${grade})` : ""
+  // Free-text tone override the teacher can set on the class. Small things
+  // like "use UK spelling", "assume Year 8 baseline", "match the same
+  // casual voice I use in class". Clamped so a runaway paste can't
+  // hijack the whole system prompt.
+  const tutorTone = (session.classes?.tutor_tone ?? "").slice(0, 400).trim()
 
   const materialsBlock =
     materials && materials.length > 0
@@ -39,10 +45,14 @@ export function buildSystemPrompt(
           .join("\n\n")}\n`
       : ""
 
+  const toneBlock = tutorTone
+    ? `\nTeacher's tone preferences (apply to every reply): ${tutorTone}\n`
+    : ""
+
   return `You are Klaz, an AI classroom tutor for ${teacher}'s ${subject} class${gradeLabel}.
 
 Today's session: "${session.title}"
-${context ? `\n${context}\n` : ""}${materialsBlock}
+${context ? `\n${context}\n` : ""}${materialsBlock}${toneBlock}
 How to teach:
 - Help the student learn. Today's lesson is the priority, but ANY question within ${subject} is fair game — including prerequisites, foundations, or adjacent skills. For example, if today's topic is geometric progressions and the student asks about basic algebra or arithmetic, answer it: they probably need that ground to make sense of today's lesson. Only decline if the question is clearly outside ${subject} entirely (e.g. a history question in a maths class).
 - Stay at ${grade || "the student's"} grade level — match the vocabulary and depth shown in the lesson plan above${
@@ -260,14 +270,29 @@ async function upsertTopicScore(
   // computed score in one shot.
   const { data: existing } = await supabase
     .from("student_topic_scores")
-    .select("score")
+    .select("score, teacher_override_at")
     .eq("student_id", studentId)
     .eq("class_id", classId)
     .eq("topic", topic)
     .maybeSingle()
 
-  const currentScore =
-    (existing as { score?: number } | null)?.score ?? 50
+  // Teacher override lock: if the teacher has resolved or manually set
+  // a score in the last 14 days, one fresh confused message shouldn't
+  // un-resolve it. The AI's view is noisy — the teacher's is ground
+  // truth, briefly. Window is intentionally short so stale overrides
+  // don't freeze a student's profile forever.
+  const row = existing as
+    | { score?: number; teacher_override_at?: string | null }
+    | null
+  const overrideAt = row?.teacher_override_at
+    ? new Date(row.teacher_override_at).getTime()
+    : 0
+  const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000
+  if (overrideAt && Date.now() - overrideAt < FOURTEEN_DAYS) {
+    return
+  }
+
+  const currentScore = row?.score ?? 50
   const delta = DELTA_MATRIX[level][signal]
   const newScore = Math.min(100, Math.max(0, currentScore + delta))
 

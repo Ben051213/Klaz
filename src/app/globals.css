@@ -6,8 +6,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ————————————————————————————————————————————
-   Klaz design system — "warm editorial" direction
-   Cream paper background, ink text, terracotta accent.
+   Klaz design system — "macaron" direction
+   Pastel boutique cafe: cool off-white, deep plum ink,
+   pastel mint as the signature accent. Retains the serif +
+   mono editorial scaffolding from the previous warm palette.
    Typography: Instrument Serif (display), Inter (UI),
    JetBrains Mono (labels, codes, timecodes).
    ———————————————————————————————————————————— */
@@ -20,30 +22,50 @@
   --font-serif: var(--font-instrument-serif), Georgia, serif;
   --font-heading: var(--font-instrument-serif), Georgia, serif;
 
-  /* Klaz palette — exposed as Tailwind color utilities */
-  --color-klaz-bg:        #f6f1e7;
-  --color-klaz-panel:     #fbf8f1;
-  --color-klaz-panel2:    #fffdf7;
-  --color-klaz-ink:       #1a1815;
-  --color-klaz-ink2:      #46423b;
-  --color-klaz-muted:     #7a7266;
-  --color-klaz-faint:     #aba294;
-  --color-klaz-line:      #e2d9c7;
-  --color-klaz-line2:     #ece4d4;
-  --color-klaz-accent:    #b84a2b;
-  --color-klaz-accent2:   #a33f22;
-  --color-klaz-accent-bg: #f7e6dd;
-  --color-klaz-deep:      #2a2520;
-  --color-klaz-ok:        #4a7c3a;
-  --color-klaz-warn:      #b86a12;
-  --color-klaz-bad:       #9c2b2b;
-  --color-klaz-ok-bg:     #e9efdf;
-  --color-klaz-warn-bg:   #f9ead4;
-  --color-klaz-bad-bg:    #f2dcd7;
+  /* Klaz palette — macaron pastels.
+     Accent stays medium-saturation so buttons and links pass contrast.
+     OK/warn/bad are muted cousins of sage/apricot/rose so the grading
+     signals never scream at the student.
+  */
+  --color-klaz-bg:        #faf7f5;
+  --color-klaz-panel:     #ffffff;
+  --color-klaz-panel2:    #fbfaf8;
+  --color-klaz-ink:       #2b2a38;
+  --color-klaz-ink2:      #55516a;
+  --color-klaz-muted:     #8a849b;
+  --color-klaz-faint:     #c3becd;
+  --color-klaz-line:      #ece7ed;
+  --color-klaz-line2:     #f4f0f5;
+  --color-klaz-accent:    #8ecbb2;
+  --color-klaz-accent2:   #6fb79b;
+  --color-klaz-accent-bg: #e3f1ea;
+  --color-klaz-deep:      #1f1e28;
+  --color-klaz-ok:        #7fb38d;
+  --color-klaz-warn:      #d9a25e;
+  --color-klaz-bad:       #d67c82;
+  --color-klaz-ok-bg:     #e9f1e8;
+  --color-klaz-warn-bg:   #faecd5;
+  --color-klaz-bad-bg:    #f7dde0;
+
+  /* Per-class flavor tints — macaron rainbow. Pulled in client-side via
+     the `flavor` column on classes. Keep these subtle; they're a wash,
+     not the primary accent. */
+  --color-klaz-mint:       #8ecbb2;
+  --color-klaz-mint-bg:    #e3f1ea;
+  --color-klaz-rose:       #e4a3ae;
+  --color-klaz-rose-bg:    #fbe7ec;
+  --color-klaz-lavender:   #b3a6d9;
+  --color-klaz-lavender-bg:#ede7f6;
+  --color-klaz-apricot:    #e9b787;
+  --color-klaz-apricot-bg: #fbe9d5;
+  --color-klaz-pistachio:  #c2d28a;
+  --color-klaz-pistachio-bg:#ecf1d6;
+  --color-klaz-vanilla:    #e6d49a;
+  --color-klaz-vanilla-bg: #f9f1d7;
 
   /* Legacy brand tokens kept so stray references still compile */
-  --color-brand-navy: #1a1815;
-  --color-brand-teal: #b84a2b;
+  --color-brand-navy: #2b2a38;
+  --color-brand-teal: #8ecbb2;
 
   /* shadcn bridge */
   --color-sidebar-ring: var(--sidebar-ring);
@@ -85,40 +107,40 @@
 }
 
 :root {
-  /* shadcn surfaces remapped onto the Klaz cream palette so existing
+  /* shadcn surfaces remapped onto the macaron palette so existing
      <Card>, <Button>, <Badge> etc. inherit the new look for free. */
-  --background: #f6f1e7;
-  --foreground: #1a1815;
-  --card: #fbf8f1;
-  --card-foreground: #1a1815;
-  --popover: #fffdf7;
-  --popover-foreground: #1a1815;
-  --primary: #1a1815;
-  --primary-foreground: #f6f1e7;
-  --secondary: #ece4d4;
-  --secondary-foreground: #1a1815;
-  --muted: #ece4d4;
-  --muted-foreground: #7a7266;
-  --accent: #b84a2b;
-  --accent-foreground: #ffffff;
-  --destructive: #9c2b2b;
-  --border: #e2d9c7;
-  --input: #e2d9c7;
-  --ring: #b84a2b;
-  --chart-1: #b84a2b;
-  --chart-2: #4a7c3a;
-  --chart-3: #b86a12;
-  --chart-4: #9c2b2b;
-  --chart-5: #46423b;
+  --background: #faf7f5;
+  --foreground: #2b2a38;
+  --card: #ffffff;
+  --card-foreground: #2b2a38;
+  --popover: #ffffff;
+  --popover-foreground: #2b2a38;
+  --primary: #2b2a38;
+  --primary-foreground: #faf7f5;
+  --secondary: #f4f0f5;
+  --secondary-foreground: #2b2a38;
+  --muted: #f4f0f5;
+  --muted-foreground: #8a849b;
+  --accent: #8ecbb2;
+  --accent-foreground: #1f1e28;
+  --destructive: #d67c82;
+  --border: #ece7ed;
+  --input: #ece7ed;
+  --ring: #8ecbb2;
+  --chart-1: #8ecbb2;
+  --chart-2: #b3a6d9;
+  --chart-3: #e9b787;
+  --chart-4: #e4a3ae;
+  --chart-5: #c2d28a;
   --radius: 0.625rem;
-  --sidebar: #fbf8f1;
-  --sidebar-foreground: #1a1815;
-  --sidebar-primary: #1a1815;
-  --sidebar-primary-foreground: #f6f1e7;
-  --sidebar-accent: #ece4d4;
-  --sidebar-accent-foreground: #1a1815;
-  --sidebar-border: #e2d9c7;
-  --sidebar-ring: #b84a2b;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2b2a38;
+  --sidebar-primary: #2b2a38;
+  --sidebar-primary-foreground: #faf7f5;
+  --sidebar-accent: #f4f0f5;
+  --sidebar-accent-foreground: #2b2a38;
+  --sidebar-border: #ece7ed;
+  --sidebar-ring: #8ecbb2;
 }
 
 .dark {
@@ -179,13 +201,15 @@
 /* The signature "period in accent" for page titles.
    Usage: <h1>Your classes<span className="text-klaz-accent">.</span></h1> */
 
-/* Pulsing terracotta glow applied to a teacher-facing roster row the moment
-   a student flips into "stuck". Fades to the regular stuck background over
-   ~15s via JS-managed class removal. */
+/* Pulsing rose glow applied to a teacher-facing roster row the moment
+   a student flips into "stuck". Macaron rose (#e89da3) is still readable
+   as a warning against the dark plum pulse backdrop without the harshness
+   of a saturated red. Fades to the regular stuck background over ~15s
+   via JS-managed class removal. */
 @keyframes klaz-stuck-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(184, 74, 43, 0.55); }
-  70%  { box-shadow: 0 0 0 10px rgba(184, 74, 43, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(184, 74, 43, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(232, 157, 163, 0.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(232, 157, 163, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 157, 163, 0); }
 }
 .klaz-stuck-pulse {
   animation: klaz-stuck-pulse 1.8s ease-out infinite;

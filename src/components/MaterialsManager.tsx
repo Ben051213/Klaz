@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { cn, formatRelative } from "@/lib/utils"
@@ -31,9 +31,52 @@ export function MaterialsManager({
   const router = useRouter()
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function uploadPdf(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("PDF is larger than 10MB — upload a smaller file.")
+      return
+    }
+    if (file.type && file.type !== "application/pdf") {
+      toast.error("Only PDFs are supported for upload right now.")
+      return
+    }
+    setUploading(true)
+    const form = new FormData()
+    form.append("file", file)
+    form.append("kind", "lesson")
+    const res = await fetch(`/api/classes/${classId}/materials`, {
+      method: "POST",
+      body: form,
+    })
+    setUploading(false)
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      toast.error(body.error || "Could not upload PDF")
+      return
+    }
+    toast.success("Lesson plan added from PDF")
+    router.refresh()
+  }
 
   return (
     <div className="space-y-3">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          await uploadPdf(file)
+          // Reset so the same filename can be picked twice in a row.
+          if (fileInputRef.current) fileInputRef.current.value = ""
+        }}
+      />
+
       {creating ? (
         <MaterialEditor
           mode="create"
@@ -45,24 +88,46 @@ export function MaterialsManager({
           onCancel={() => setCreating(false)}
         />
       ) : (
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="flex w-full items-center justify-between rounded-lg border border-dashed border-klaz-line bg-klaz-panel px-4 py-3 text-left transition hover:border-klaz-accent/50 hover:bg-klaz-accent-bg/30"
-        >
-          <div>
-            <div className="font-serif text-[18px] leading-none tracking-[-0.01em] text-klaz-ink">
-              Add a material<span className="text-klaz-accent">.</span>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="flex w-full items-center justify-between rounded-lg border border-dashed border-klaz-line bg-klaz-panel px-4 py-3 text-left transition hover:border-klaz-accent/50 hover:bg-klaz-accent-bg/30"
+          >
+            <div>
+              <div className="font-serif text-[18px] leading-none tracking-[-0.01em] text-klaz-ink">
+                Paste text<span className="text-klaz-accent">.</span>
+              </div>
+              <p className="mt-1 text-[12.5px] text-klaz-muted">
+                Syllabus, a lesson plan, or a worked example the tutor should
+                anchor to.
+              </p>
             </div>
-            <p className="mt-1 text-[12.5px] text-klaz-muted">
-              Paste syllabus text, a lesson plan, or a worked example the tutor
-              should anchor to.
-            </p>
-          </div>
-          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-klaz-accent">
-            + new
-          </span>
-        </button>
+            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-klaz-accent">
+              + text
+            </span>
+          </button>
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full items-center justify-between rounded-lg border border-dashed border-klaz-line bg-klaz-panel px-4 py-3 text-left transition hover:border-klaz-accent/50 hover:bg-klaz-accent-bg/30 disabled:cursor-wait disabled:opacity-70"
+          >
+            <div>
+              <div className="font-serif text-[18px] leading-none tracking-[-0.01em] text-klaz-ink">
+                {uploading ? "Reading PDF…" : "Upload PDF"}
+                <span className="text-klaz-accent">.</span>
+              </div>
+              <p className="mt-1 text-[12.5px] text-klaz-muted">
+                Drop in your lesson plan — we&apos;ll extract the main topic,
+                objectives, and key examples for you.
+              </p>
+            </div>
+            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-klaz-accent">
+              ⤓ pdf
+            </span>
+          </button>
+        </div>
       )}
 
       {initialMaterials.length === 0 && !creating ? (

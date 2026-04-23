@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { ClassSettingsClient } from "@/components/ClassSettingsClient"
 import { MaterialsManager } from "@/components/MaterialsManager"
 import { createClient } from "@/lib/supabase/server"
 
@@ -21,7 +22,7 @@ export default async function ClassMaterialsPage({
 
   const { data: klass } = await supabase
     .from("classes")
-    .select("id, teacher_id, name, subject")
+    .select("id, teacher_id, name, subject, tutor_tone, flavor")
     .eq("id", classId)
     .single()
   if (!klass) notFound()
@@ -67,6 +68,18 @@ export default async function ClassMaterialsPage({
 
       <div className="mt-6">
         <MaterialsManager classId={classId} initialMaterials={materials} />
+      </div>
+
+      <div className="mt-8">
+        <ClassSettingsClient
+          classId={classId}
+          initialTone={
+            (klass as { tutor_tone?: string | null }).tutor_tone ?? ""
+          }
+          initialFlavor={
+            (klass as { flavor?: string | null }).flavor ?? null
+          }
+        />
       </div>
     </div>
   )

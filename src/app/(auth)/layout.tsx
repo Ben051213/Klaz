@@ -17,7 +17,7 @@ export default function AuthLayout({
         className="relative flex flex-col justify-between overflow-hidden px-8 py-10 text-klaz-bg md:px-12 md:py-14"
         style={{
           background:
-            "radial-gradient(circle at 100% 20%, rgba(184,74,43,0.3), transparent 55%), #2a2520",
+            "radial-gradient(circle at 100% 20%, rgba(142,203,178,0.32), transparent 55%), #2b2a38",
         }}
       >
         <Link href="/" className="relative flex items-center gap-2.5">

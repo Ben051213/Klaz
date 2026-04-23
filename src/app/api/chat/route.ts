@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   const { data: session } = await supabase
     .from("sessions")
     .select(
-      "id, title, ai_context, class_id, status, classes(subject, grade, teacher_id, profiles:profiles!classes_teacher_id_fkey(name))"
+      "id, title, ai_context, class_id, status, classes(subject, grade, teacher_id, tutor_tone, profiles:profiles!classes_teacher_id_fkey(name))"
     )
     .eq("id", session_id)
     .single()
@@ -91,6 +91,7 @@ export async function POST(request: Request) {
     classes?: {
       subject: string
       grade?: string | null
+      tutor_tone?: string | null
       profiles?: { name: string } | null
     } | null
   }
@@ -102,9 +103,15 @@ export async function POST(request: Request) {
         | {
             subject: string
             grade?: string | null
+            tutor_tone?: string | null
             profiles?: { name: string } | { name: string }[] | null
           }
-        | { subject: string; grade?: string | null; profiles?: { name: string } | { name: string }[] | null }[]
+        | {
+            subject: string
+            grade?: string | null
+            tutor_tone?: string | null
+            profiles?: { name: string } | { name: string }[] | null
+          }[]
         | null
     }
     const c = Array.isArray(r.classes) ? r.classes[0] : r.classes
@@ -117,7 +124,12 @@ export async function POST(request: Request) {
       title: r.title,
       ai_context: r.ai_context,
       classes: c
-        ? { subject: c.subject, grade: c.grade, profiles: p ?? null }
+        ? {
+            subject: c.subject,
+            grade: c.grade,
+            tutor_tone: c.tutor_tone ?? null,
+            profiles: p ?? null,
+          }
         : null,
     }
   }

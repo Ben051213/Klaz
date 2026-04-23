@@ -18,14 +18,14 @@ export function PulseConstellation({
 }) {
   if (loading && data.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-[11px] font-mono uppercase tracking-[0.08em] text-[rgba(246,241,231,0.4)]">
+      <div className="flex h-full items-center justify-center text-[11px] font-mono uppercase tracking-[0.08em] text-[rgba(250,247,245,0.4)]">
         Loading pulse…
       </div>
     )
   }
   if (data.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center px-6 text-center text-[13px] text-[rgba(246,241,231,0.55)]">
+      <div className="flex h-full items-center justify-center px-6 text-center text-[13px] text-[rgba(250,247,245,0.55)]">
         No signals yet — topics appear here as students start asking questions.
       </div>
     )
@@ -47,23 +47,23 @@ export function PulseConstellation({
   })
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-xl border border-[rgba(246,241,231,0.1)]"
+    <div className="relative h-full w-full overflow-hidden rounded-xl border border-[rgba(250,247,245,0.1)]"
       style={{
         background:
-          "radial-gradient(circle at 80% 15%, rgba(184,74,43,0.18), transparent 55%), radial-gradient(circle at 20% 85%, rgba(246,241,231,0.04), transparent 55%)",
+          "radial-gradient(circle at 80% 15%, rgba(184,74,43,0.18), transparent 55%), radial-gradient(circle at 20% 85%, rgba(250,247,245,0.04), transparent 55%)",
       }}
     >
-      <div className="absolute left-3.5 top-3 font-mono text-[10px] uppercase tracking-[0.08em] text-[rgba(246,241,231,0.4)]">
+      <div className="absolute left-3.5 top-3 font-mono text-[10px] uppercase tracking-[0.08em] text-[rgba(250,247,245,0.4)]">
         ↑ more confused
       </div>
-      <div className="absolute bottom-2.5 right-3.5 font-mono text-[10px] uppercase tracking-[0.08em] text-[rgba(246,241,231,0.4)]">
+      <div className="absolute bottom-2.5 right-3.5 font-mono text-[10px] uppercase tracking-[0.08em] text-[rgba(250,247,245,0.4)]">
         more asked →
       </div>
       <div
         className="absolute inset-0"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(246,241,231,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(246,241,231,0.04) 1px, transparent 1px)",
+            "linear-gradient(rgba(250,247,245,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(250,247,245,0.04) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
         }}
       />
@@ -83,18 +83,18 @@ export function PulseConstellation({
               width: b.r * 2,
               height: b.r * 2,
               background: b.hot
-                ? "rgba(184,74,43,0.3)"
+                ? "rgba(232,157,163,0.32)"
                 : b.cool
-                  ? "rgba(159,192,127,0.2)"
-                  : "rgba(246,241,231,0.12)",
+                  ? "rgba(194,210,138,0.24)"
+                  : "rgba(250,247,245,0.12)",
               border: `1.5px solid ${
                 b.hot
-                  ? "#b84a2b"
+                  ? "#e89da3"
                   : b.cool
-                    ? "#9fc07f"
-                    : "rgba(246,241,231,0.35)"
+                    ? "#c2d28a"
+                    : "rgba(250,247,245,0.35)"
               }`,
-              boxShadow: b.hot ? "0 0 30px rgba(184,74,43,0.4)" : "none",
+              boxShadow: b.hot ? "0 0 30px rgba(232,157,163,0.45)" : "none",
             }}
           />
           <div
@@ -102,10 +102,10 @@ export function PulseConstellation({
             style={{
               fontStyle: b.hot ? "italic" : "normal",
               color: b.hot
-                ? "#b84a2b"
+                ? "#e89da3"
                 : b.cool
-                  ? "#9fc07f"
-                  : "rgba(246,241,231,0.8)",
+                  ? "#c2d28a"
+                  : "rgba(250,247,245,0.8)",
             }}
           >
             {b.topic}

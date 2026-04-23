@@ -73,7 +73,21 @@ export function SettingsClient({
     setPassword("")
   }
 
-  async function toggleArchive(classId: string, nextActive: boolean) {
+  async function toggleArchive(
+    classId: string,
+    className: string,
+    nextActive: boolean
+  ) {
+    // Archiving hides a class from the dashboard + side rail + student
+    // roster but preserves history (digests, transcripts, scores).
+    // Confirm before flipping — one accidental click shouldn't pull a
+    // live class out from under the teacher mid-term.
+    if (!nextActive) {
+      const ok = window.confirm(
+        `Archive "${className}"?\n\nIt will disappear from your dashboard and your students' home screens, but all past sessions stay intact. You can unarchive any time.`
+      )
+      if (!ok) return
+    }
     const supabase = createClient()
     const { error } = await supabase
       .from("classes")
@@ -83,7 +97,7 @@ export function SettingsClient({
       toast.error(error.message)
       return
     }
-    toast.success(nextActive ? "Unarchived" : "Archived")
+    toast.success(nextActive ? `Unarchived ${className}` : `Archived ${className}`)
     router.refresh()
   }
 
@@ -220,7 +234,7 @@ export function SettingsClient({
                   </div>
                   <button
                     type="button"
-                    onClick={() => toggleArchive(c.id, !c.is_active)}
+                    onClick={() => toggleArchive(c.id, c.name, !c.is_active)}
                     className="h-8 shrink-0 rounded-md border border-klaz-line bg-klaz-panel2 px-3 text-[12px] font-medium text-klaz-ink2 transition hover:bg-klaz-line2"
                   >
                     {c.is_active ? "Archive" : "Unarchive"}

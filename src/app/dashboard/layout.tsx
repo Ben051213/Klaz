@@ -25,10 +25,14 @@ export default async function DashboardLayout({
   if (!profile) redirect("/login")
   if (profile.role !== "teacher") redirect("/learn")
 
+  // Archived classes shouldn't clutter the side rail — they're
+  // still visible + unarchivable from /settings. Tolerate old rows
+  // where is_active is null (legacy data pre-is_active column).
   const { data: classes } = await supabase
     .from("classes")
-    .select("id, name")
+    .select("id, name, is_active")
     .eq("teacher_id", user.id)
+    .or("is_active.is.null,is_active.eq.true")
     .order("created_at", { ascending: false })
 
   const classIds = (classes ?? []).map((c) => c.id)

@@ -94,7 +94,7 @@ export default async function RootPage() {
             className="relative overflow-hidden rounded-xl p-5 text-klaz-bg"
             style={{
               background:
-                "radial-gradient(circle at 90% 10%, rgba(184,74,43,0.35), transparent 55%), #2a2520",
+                "radial-gradient(circle at 90% 10%, rgba(142,203,178,0.35), transparent 55%), #2b2a38",
             }}
           >
             <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(246,241,231,0.55)]">

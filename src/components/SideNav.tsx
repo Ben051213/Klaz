@@ -91,12 +91,11 @@ export function SideNav({
           badge: liveCount > 0 ? String(liveCount) : undefined,
           active: pathname.startsWith("/learn/session"),
         },
-        {
-          label: "Progress",
-          icon: "▁",
-          href: "/learn/progress",
-          active: pathname.startsWith("/learn/progress"),
-        },
+        // Progress tab intentionally removed — surfacing students' weak
+        // topics to themselves discourages asking questions (the whole
+        // point of Klaz). Motivation lives in the "ask 5 questions"
+        // streak on /learn instead, and the teacher keeps the full
+        // analytics view privately.
         {
           label: "Practice",
           icon: "⊞",

@@ -4,6 +4,7 @@ import { KlazTitle } from "@/components/klaz/KlazTitle"
 import { LiveHero } from "@/components/klaz/LiveHero"
 import { Sparkline } from "@/components/klaz/Sparkline"
 import { Chip } from "@/components/klaz/Chip"
+import { flavorClasses } from "@/lib/flavor"
 import { createClient } from "@/lib/supabase/server"
 import { formatDuration, formatRelative, scoreHex } from "@/lib/utils"
 
@@ -25,12 +26,16 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) return null
 
+  // Archived classes drop off the main index (they're still listed
+  // in /settings → Classes so the teacher can unarchive). Tolerate
+  // null is_active for classes that predate the column.
   const { data: classes } = await supabase
     .from("classes")
     .select(
-      "id, name, subject, grade, join_code, created_at, class_enrollments(count), sessions(id,title,status,started_at,ended_at)"
+      "id, name, subject, grade, join_code, created_at, flavor, class_enrollments(count), sessions(id,title,status,started_at,ended_at)"
     )
     .eq("teacher_id", user.id)
+    .or("is_active.is.null,is_active.eq.true")
     .order("created_at", { ascending: false })
 
   type Row = {
@@ -40,6 +45,7 @@ export default async function DashboardPage() {
     grade: string | null
     join_code: string
     created_at: string
+    flavor: string | null
     class_enrollments: { count: number }[]
     sessions: {
       id: string
@@ -225,6 +231,7 @@ export default async function DashboardPage() {
           {rows.map((c, i) => {
             const studentCount = c.class_enrollments?.[0]?.count ?? 0
             const live = c.sessions?.find((s) => s.status === "active")
+            const flavor = flavorClasses(c.flavor)
             const lastSession = c.sessions
               ?.slice()
               .sort(
@@ -262,11 +269,7 @@ export default async function DashboardPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className="grid h-[22px] w-[22px] place-items-center rounded-[5px] text-[11px] font-semibold"
-                      style={{
-                        background: `oklch(0.92 0.05 ${(i * 52) % 360})`,
-                        color: `oklch(0.4 0.11 ${(i * 52) % 360})`,
-                      }}
+                      className={`grid h-[22px] w-[22px] place-items-center rounded-[5px] text-[11px] font-semibold ${flavor.chipBg} ${flavor.chipText}`}
                       aria-hidden
                     >
                       {c.subject[0]?.toUpperCase()}

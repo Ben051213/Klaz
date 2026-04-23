@@ -1,6 +1,10 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { ClassAnalytics } from "@/components/ClassAnalytics"
+import {
+  ClassWeakTopicBanner,
+  computeWeakTopics,
+} from "@/components/ClassWeakTopicBanner"
 import { JoinCodeDisplay } from "@/components/JoinCodeDisplay"
 import { KlazTitle } from "@/components/klaz/KlazTitle"
 import { LiveHero } from "@/components/klaz/LiveHero"
@@ -253,6 +257,14 @@ export default async function ClassDetailPage({
 
       {liveHero}
 
+      <ClassWeakTopicBanner
+        classId={klass.id}
+        topics={computeWeakTopics(scores)}
+        studentNames={
+          new Map(rosterStudents.map((s) => [s.id, s.name]))
+        }
+      />
+
       <div className="mt-6">
         <ClassAnalytics
           classId={klass.id}
@@ -297,21 +309,47 @@ export default async function ClassDetailPage({
             </p>
           ) : (
             <ul className="mt-3 divide-y divide-klaz-line2">
-              {roster.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between gap-2 py-2 text-[12.5px]"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-klaz-ink">
-                      {r.profiles?.name ?? "Student"}
-                    </p>
-                    <p className="truncate text-[11.5px] text-klaz-muted">
-                      {r.profiles?.email}
-                    </p>
-                  </div>
-                </li>
-              ))}
+              {roster.map((r) => {
+                const name = r.profiles?.name ?? "Student"
+                const email = r.profiles?.email ?? ""
+                const studentId = r.profiles?.id
+                const row = (
+                  <>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-klaz-ink">
+                        {name}
+                      </p>
+                      <p className="truncate text-[11.5px] text-klaz-muted">
+                        {email}
+                      </p>
+                    </div>
+                    {studentId ? (
+                      <span
+                        aria-hidden
+                        className="shrink-0 font-mono text-[11px] text-klaz-faint transition group-hover:text-klaz-accent2"
+                      >
+                        View →
+                      </span>
+                    ) : null}
+                  </>
+                )
+                return (
+                  <li key={r.id} className="text-[12.5px]">
+                    {studentId ? (
+                      <Link
+                        href={`/dashboard/classes/${klass.id}/students/${studentId}`}
+                        className="group flex items-center justify-between gap-2 rounded-md px-1.5 py-2 transition hover:bg-klaz-line2/60"
+                      >
+                        {row}
+                      </Link>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2 px-1.5 py-2">
+                        {row}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

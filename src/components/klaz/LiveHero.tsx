@@ -43,7 +43,7 @@ export function LiveHero({
       className="relative overflow-hidden rounded-xl border border-klaz-line text-klaz-bg"
       style={{
         background:
-          "radial-gradient(circle at 100% 0%, rgba(184,74,43,0.55), transparent 55%), #2a2520",
+          "radial-gradient(circle at 100% 0%, rgba(142,203,178,0.55), transparent 55%), #2b2a38",
       }}
     >
       <div
@@ -59,7 +59,7 @@ export function LiveHero({
             >
               ● LIVE
             </Chip>
-            <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-[rgba(246,241,231,0.6)]">
+            <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-[rgba(250,247,245,0.6)]">
               SESSION {elapsed}
             </span>
           </div>
@@ -69,7 +69,7 @@ export function LiveHero({
               <span className="italic text-klaz-accent">— {topic}</span>
             ) : null}
           </div>
-          <div className="mt-1.5 text-[12.5px] text-[rgba(246,241,231,0.7)]">
+          <div className="mt-1.5 text-[12.5px] text-[rgba(250,247,245,0.7)]">
             {onlineCount} of {totalCount} students online · {questionCount}{" "}
             question{questionCount === 1 ? "" : "s"} so far
           </div>
@@ -84,13 +84,13 @@ export function LiveHero({
         </div>
 
         <div>
-          <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(246,241,231,0.6)]">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(250,247,245,0.6)]">
             Hottest topic
           </div>
           <div className="mt-2 font-serif text-[46px] leading-none text-white">
             {hottestPercent ?? "—"}
             {hottestPercent !== null ? (
-              <span className="font-sans text-[20px] text-[rgba(246,241,231,0.5)]">
+              <span className="font-sans text-[20px] text-[rgba(250,247,245,0.5)]">
                 %
               </span>
             ) : null}
@@ -99,19 +99,19 @@ export function LiveHero({
             {hottestTopic ?? "No hot topic yet"}
           </div>
           {hottestLabel ? (
-            <div className="mt-0.5 text-[11px] text-[rgba(246,241,231,0.55)]">
+            <div className="mt-0.5 text-[11px] text-[rgba(250,247,245,0.55)]">
               {hottestLabel}
             </div>
           ) : null}
         </div>
 
         <div>
-          <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(246,241,231,0.6)]">
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(250,247,245,0.6)]">
             At-risk
           </div>
           <div className="mt-2.5 flex">
             {atRisk.length === 0 ? (
-              <div className="text-[12px] text-[rgba(246,241,231,0.55)]">
+              <div className="text-[12px] text-[rgba(250,247,245,0.55)]">
                 Nobody flagged yet.
               </div>
             ) : (
@@ -121,7 +121,7 @@ export function LiveHero({
                   className="h-8 w-8"
                   style={{
                     marginLeft: i === 0 ? 0 : -8,
-                    border: "2px solid #2a2520",
+                    border: "2px solid #2b2a38",
                   }}
                 >
                   <AvatarFallback className="bg-klaz-deep text-[11px] font-semibold text-klaz-bg">
@@ -132,7 +132,7 @@ export function LiveHero({
             )}
           </div>
           {atRisk.length > 0 ? (
-            <div className="mt-2.5 text-[12px] text-[rgba(246,241,231,0.75)]">
+            <div className="mt-2.5 text-[12px] text-[rgba(250,247,245,0.75)]">
               {atRiskCount} students below 65.{" "}
               <Link
                 href={`/dashboard/session/${sessionId}`}

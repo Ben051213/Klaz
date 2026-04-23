@@ -63,12 +63,14 @@ function stateForStudent(opts: {
   return "ok"
 }
 
+// Macaron palette in the dark pulse view. Stuck = rose (warning without
+// shouting), Slow = apricot, Lead = pistachio green, OK/Idle = soft ivory.
 const stateTone: Record<StudentState, string> = {
-  stuck: "#b84a2b",
-  slow: "#d9a24a",
-  ok: "rgba(246,241,231,0.55)",
-  lead: "#9fc07f",
-  idle: "rgba(246,241,231,0.3)",
+  stuck: "#e89da3",
+  slow: "#e9b787",
+  ok: "rgba(250,247,245,0.6)",
+  lead: "#c2d28a",
+  idle: "rgba(250,247,245,0.3)",
 }
 
 function timeAgo(iso: string): string {
@@ -360,11 +362,11 @@ export function TeacherSessionView({
   return (
     <div
       className="flex w-full flex-col overflow-hidden text-klaz-bg min-h-[calc(100dvh-49px)] lg:min-h-screen"
-      style={{ background: "#2a2520" }}
+      style={{ background: "#2b2a38" }}
     >
       {/* Dark sub-topbar with LIVE dot, session title, join code, actions. */}
       <div
-        className="flex flex-wrap items-center gap-3 border-b border-[rgba(246,241,231,0.08)] px-4 py-3 sm:px-6"
+        className="flex flex-wrap items-center gap-3 border-b border-[rgba(250,247,245,0.08)] px-4 py-3 sm:px-6"
         style={{ background: "rgba(0,0,0,0.25)" }}
       >
         <div className="flex items-center gap-2.5">
@@ -374,26 +376,26 @@ export function TeacherSessionView({
               isLive ? "animate-pulse" : ""
             )}
             style={{
-              background: isLive ? "#b84a2b" : "rgba(246,241,231,0.4)",
-              boxShadow: isLive ? "0 0 0 4px rgba(184,74,43,0.25)" : undefined,
+              background: isLive ? "#8ecbb2" : "rgba(250,247,245,0.4)",
+              boxShadow: isLive ? "0 0 0 4px rgba(142,203,178,0.3)" : undefined,
             }}
             aria-hidden
           />
-          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-[rgba(246,241,231,0.6)]">
+          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-[rgba(250,247,245,0.6)]">
             {isLive ? `LIVE · ${elapsed}` : `ENDED · ${elapsed}`}
           </span>
         </div>
         <div className="font-serif text-[18px] leading-none tracking-[-0.01em] md:text-[20px]">
           {session.className}
           {" · "}
-          <span className="italic text-[rgba(246,241,231,0.55)]">
+          <span className="italic text-[rgba(250,247,245,0.55)]">
             {session.title}
           </span>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[11.5px] text-[rgba(246,241,231,0.55)]">
+          <span className="font-mono text-[11.5px] text-[rgba(250,247,245,0.55)]">
             Join:{" "}
-            <span className="ml-1 rounded-full bg-[rgba(246,241,231,0.08)] px-2 py-[2px] tracking-[0.06em] text-klaz-bg">
+            <span className="ml-1 rounded-full bg-[rgba(250,247,245,0.08)] px-2 py-[2px] tracking-[0.06em] text-klaz-bg">
               {session.joinCode}
             </span>
           </span>
@@ -407,7 +409,7 @@ export function TeacherSessionView({
               {endingSession ? "Ending…" : "End session"}
             </button>
           ) : (
-            <span className="rounded-md border border-[rgba(246,241,231,0.2)] px-3 py-1 text-[12px] text-[rgba(246,241,231,0.55)]">
+            <span className="rounded-md border border-[rgba(250,247,245,0.2)] px-3 py-1 text-[12px] text-[rgba(250,247,245,0.55)]">
               Read-only review
             </span>
           )}
@@ -416,26 +418,26 @@ export function TeacherSessionView({
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr]">
         {/* LEFT — students live */}
-        <section className="flex min-h-0 flex-col border-b border-[rgba(246,241,231,0.08)] lg:border-b-0 lg:border-r">
+        <section className="flex min-h-0 flex-col border-b border-[rgba(250,247,245,0.08)] lg:border-b-0 lg:border-r">
           <div className="flex items-center justify-between px-4 pb-2 pt-4">
             <div>
               <div className="font-serif text-[20px] leading-none">
                 {onlineCount}{" "}
-                <span className="text-[rgba(246,241,231,0.5)]">
+                <span className="text-[rgba(250,247,245,0.5)]">
                   of {roster.length}
                 </span>
               </div>
-              <div className="mt-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(246,241,231,0.55)]">
+              <div className="mt-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(250,247,245,0.55)]">
                 students online
               </div>
             </div>
-            <div className="font-mono text-[10.5px] text-[rgba(246,241,231,0.4)]">
+            <div className="font-mono text-[10.5px] text-[rgba(250,247,245,0.4)]">
               sorted · confusion ↓
             </div>
           </div>
           <div className="flex-1 overflow-y-auto px-2 pb-3">
             {rosterRows.length === 0 ? (
-              <p className="px-3 text-[12px] text-[rgba(246,241,231,0.5)]">
+              <p className="px-3 text-[12px] text-[rgba(250,247,245,0.5)]">
                 No students enrolled yet.
               </p>
             ) : (
@@ -458,16 +460,16 @@ export function TeacherSessionView({
                       )}
                       style={{
                         background: stuck
-                          ? "rgba(184,74,43,0.12)"
+                          ? "rgba(232,157,163,0.14)"
                           : "transparent",
                         borderColor: stuck
-                          ? "rgba(184,74,43,0.3)"
+                          ? "rgba(232,157,163,0.32)"
                           : "transparent",
                       }}
                     >
                       <div className="relative">
                         <Avatar className="h-7 w-7">
-                          <AvatarFallback className="bg-[rgba(246,241,231,0.08)] text-[11px] font-semibold text-klaz-bg">
+                          <AvatarFallback className="bg-[rgba(250,247,245,0.08)] text-[11px] font-semibold text-klaz-bg">
                             {r.student.name.slice(0, 1).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
@@ -475,7 +477,7 @@ export function TeacherSessionView({
                           className="absolute -bottom-[1px] -right-[1px] h-2.5 w-2.5 rounded-full"
                           style={{
                             background: tone,
-                            border: "2px solid #2a2520",
+                            border: "2px solid #2b2a38",
                           }}
                           aria-hidden
                         />
@@ -484,7 +486,7 @@ export function TeacherSessionView({
                         <div className="truncate text-[12.5px] font-medium text-klaz-bg">
                           {r.student.name}
                         </div>
-                        <div className="truncate text-[10.5px] text-[rgba(246,241,231,0.55)]">
+                        <div className="truncate text-[10.5px] text-[rgba(250,247,245,0.55)]">
                           {r.topic ? (
                             <span
                               className="font-serif text-[12px] italic"
@@ -493,12 +495,12 @@ export function TeacherSessionView({
                               {r.topic}
                             </span>
                           ) : (
-                            <span className="font-mono text-[10.5px] text-[rgba(246,241,231,0.35)]">
+                            <span className="font-mono text-[10.5px] text-[rgba(250,247,245,0.35)]">
                               no activity
                             </span>
                           )}
                           {r.last !== "—" ? (
-                            <span className="text-[rgba(246,241,231,0.35)]">
+                            <span className="text-[rgba(250,247,245,0.35)]">
                               {" · "}
                               {r.last}
                             </span>
@@ -513,7 +515,7 @@ export function TeacherSessionView({
                       </div>
                     </button>
                     {isOpen ? (
-                      <div className="mx-2 my-2 rounded-lg bg-[rgba(246,241,231,0.96)] p-0 text-klaz-ink">
+                      <div className="mx-2 my-2 rounded-lg bg-[rgba(250,247,245,0.96)] p-0 text-klaz-ink">
                         <StudentDetailPanel
                           sessionId={session.id}
                           studentId={r.student.id}
@@ -539,7 +541,7 @@ export function TeacherSessionView({
               <div className="font-serif text-[22px] leading-none tracking-[-0.01em] md:text-[24px]">
                 Class Pulse<span className="text-klaz-accent">.</span>
               </div>
-              <div className="mt-0.5 text-[11.5px] text-[rgba(246,241,231,0.55)]">
+              <div className="mt-0.5 text-[11.5px] text-[rgba(250,247,245,0.55)]">
                 Topics plotted by{" "}
                 <span className="text-klaz-bg">question volume</span> ×{" "}
                 <span className="text-klaz-bg">confusion level</span>. Bigger =
@@ -553,13 +555,13 @@ export function TeacherSessionView({
         </section>
 
         {/* RIGHT — live question feed */}
-        <section className="flex min-h-0 flex-col border-t border-[rgba(246,241,231,0.08)] lg:border-t-0 lg:border-l">
+        <section className="flex min-h-0 flex-col border-t border-[rgba(250,247,245,0.08)] lg:border-t-0 lg:border-l">
           <div className="flex items-center justify-between px-4 pb-1.5 pt-4">
             <div>
               <div className="font-serif text-[20px] leading-none">
                 {questionsLive}
               </div>
-              <div className="mt-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(246,241,231,0.55)]">
+              <div className="mt-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] text-[rgba(250,247,245,0.55)]">
                 questions {isLive ? "live" : "asked"}
               </div>
             </div>
@@ -571,7 +573,7 @@ export function TeacherSessionView({
           </div>
           <div className="flex-1 overflow-y-auto px-3 pb-3">
             {feed.length === 0 ? (
-              <p className="px-2 text-[12px] text-[rgba(246,241,231,0.5)]">
+              <p className="px-2 text-[12px] text-[rgba(250,247,245,0.5)]">
                 No questions yet.
               </p>
             ) : (
@@ -581,16 +583,16 @@ export function TeacherSessionView({
                   className="mb-1.5 rounded-lg px-3 py-2.5"
                   style={{
                     background: q.hot
-                      ? "rgba(184,74,43,0.08)"
-                      : "rgba(246,241,231,0.03)",
+                      ? "rgba(232,157,163,0.10)"
+                      : "rgba(250,247,245,0.03)",
                     border: `1px solid ${
                       q.hot
-                        ? "rgba(184,74,43,0.2)"
-                        : "rgba(246,241,231,0.06)"
+                        ? "rgba(232,157,163,0.28)"
+                        : "rgba(250,247,245,0.06)"
                     }`,
                   }}
                 >
-                  <div className="flex items-center justify-between font-mono text-[10.5px] tracking-[0.04em] text-[rgba(246,241,231,0.55)]">
+                  <div className="flex items-center justify-between font-mono text-[10.5px] tracking-[0.04em] text-[rgba(250,247,245,0.55)]">
                     <span className="truncate">
                       {q.who}
                       {" · "}
