@@ -59,7 +59,8 @@ export function SideNav({
           count: classes.length || undefined,
           active:
             pathname === "/dashboard" ||
-            pathname.startsWith("/dashboard/classes"),
+            (pathname.startsWith("/dashboard/classes") &&
+              !pathname.endsWith("/practice")),
         },
         {
           label: "Live sessions",
@@ -67,6 +68,12 @@ export function SideNav({
           href: "/dashboard",
           badge: liveCount > 0 ? String(liveCount) : undefined,
           active: pathname.startsWith("/dashboard/session"),
+        },
+        {
+          label: "Practice queue",
+          icon: "⊞",
+          href: "/dashboard/practice",
+          active: pathname.startsWith("/dashboard/practice"),
         },
       ]
     : [
@@ -83,6 +90,18 @@ export function SideNav({
           href: "/learn",
           badge: liveCount > 0 ? String(liveCount) : undefined,
           active: pathname.startsWith("/learn/session"),
+        },
+        {
+          label: "Progress",
+          icon: "▁",
+          href: "/learn/progress",
+          active: pathname.startsWith("/learn/progress"),
+        },
+        {
+          label: "Practice",
+          icon: "⊞",
+          href: "/learn/practice",
+          active: pathname.startsWith("/learn/practice"),
         },
       ]
 
@@ -134,7 +153,12 @@ export function SideNav({
           <NavSection
             title="Account"
             items={[
-              { label: "Settings", icon: "⚙", disabled: true },
+              {
+                label: "Settings",
+                icon: "⚙",
+                href: "/settings",
+                active: pathname.startsWith("/settings"),
+              },
               { label: "Sign out", icon: "→", onClick: signOut },
             ]}
           />

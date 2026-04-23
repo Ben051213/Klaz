@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PracticeSetCard } from "@/components/PracticeSetCard"
@@ -128,6 +129,22 @@ export default async function TeacherSessionPage({
 
       {s.status === "ended" ? (
         <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-klaz-faint">
+                After the bell
+              </div>
+              <div className="mt-0.5 font-serif text-[22px] leading-none tracking-[-0.01em] text-klaz-ink">
+                Wrap this session<span className="text-klaz-accent">.</span>
+              </div>
+            </div>
+            <Link
+              href={`/dashboard/session/${s.id}/digest`}
+              className="inline-flex items-center rounded-md bg-klaz-ink px-4 py-2 text-[13px] font-medium text-klaz-bg transition hover:bg-klaz-ink2"
+            >
+              Open digest →
+            </Link>
+          </div>
           <Card className="border-klaz-line bg-klaz-panel">
             <CardHeader>
               <CardTitle className="font-serif text-[24px] font-normal tracking-[-0.01em] text-klaz-ink">

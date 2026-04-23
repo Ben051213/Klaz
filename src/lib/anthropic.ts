@@ -5,25 +5,44 @@ export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-export function buildSystemPrompt(session: {
-  title: string
-  ai_context?: string | null
-  classes?: {
-    subject: string
-    grade?: string | null
-    profiles?: { name: string } | null
-  } | null
-}): string {
+export function buildSystemPrompt(
+  session: {
+    title: string
+    ai_context?: string | null
+    classes?: {
+      subject: string
+      grade?: string | null
+      profiles?: { name: string } | null
+    } | null
+  },
+  // Plain-text class materials (syllabus, lesson plans, handouts) uploaded by
+  // the teacher on the class /materials page. Each entry is rendered as a
+  // labelled block in the system prompt so the tutor can cite terminology and
+  // examples consistent with what the teacher has actually taught. Kept small
+  // (see the fetch on the call site — we clamp to ~6000 chars total) to leave
+  // room for the session context + chat history within Sonnet's window.
+  materials?: { title: string; kind: string; content: string }[]
+): string {
   const teacher = session.classes?.profiles?.name || "your teacher"
   const subject = session.classes?.subject || "this subject"
   const grade = session.classes?.grade || ""
   const context = session.ai_context || ""
   const gradeLabel = grade ? ` (${grade})` : ""
 
+  const materialsBlock =
+    materials && materials.length > 0
+      ? `\nClass materials — treat these as authoritative references for this class. Prefer their terminology, examples, and conventions when answering:\n${materials
+          .map(
+            (m) =>
+              `--- ${m.kind.toUpperCase()}: ${m.title} ---\n${m.content.trim()}`
+          )
+          .join("\n\n")}\n`
+      : ""
+
   return `You are Klaz, an AI classroom tutor for ${teacher}'s ${subject} class${gradeLabel}.
 
 Today's session: "${session.title}"
-${context ? `\n${context}\n` : ""}
+${context ? `\n${context}\n` : ""}${materialsBlock}
 How to teach:
 - Help the student learn. Today's lesson is the priority, but ANY question within ${subject} is fair game — including prerequisites, foundations, or adjacent skills. For example, if today's topic is geometric progressions and the student asks about basic algebra or arithmetic, answer it: they probably need that ground to make sense of today's lesson. Only decline if the question is clearly outside ${subject} entirely (e.g. a history question in a maths class).
 - Stay at ${grade || "the student's"} grade level — match the vocabulary and depth shown in the lesson plan above${

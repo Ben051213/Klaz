@@ -226,6 +226,18 @@ export default async function ClassDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/classes/${klass.id}/materials`}
+            className="inline-flex h-9 items-center rounded-md border border-klaz-line bg-klaz-panel2 px-3 text-[13px] font-medium text-klaz-ink2 transition hover:bg-klaz-line2"
+          >
+            Materials →
+          </Link>
+          <Link
+            href={`/dashboard/classes/${klass.id}/practice`}
+            className="inline-flex h-9 items-center rounded-md border border-klaz-line bg-klaz-panel2 px-3 text-[13px] font-medium text-klaz-ink2 transition hover:bg-klaz-line2"
+          >
+            Practice queue →
+          </Link>
           {activeSession ? (
             <Link
               href={`/dashboard/session/${activeSession.id}`}

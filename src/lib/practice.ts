@@ -144,6 +144,7 @@ async function generateForStudent(
     .insert({
       student_id: studentId,
       session_id: sessionId,
+      class_id: classId,
       topics,
       status: "pending",
     })

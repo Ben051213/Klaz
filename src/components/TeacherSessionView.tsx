@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { PulseConstellation } from "@/components/klaz/PulseConstellation"
@@ -98,6 +98,11 @@ export function TeacherSessionView({
   const [sessionStatus, setSessionStatus] = useState(session.status)
   const [endedAt, setEndedAt] = useState(session.endedAt)
   const [loadingPulse, setLoadingPulse] = useState(true)
+  // Track per-student stuck transitions so we can surface a toast + pulse
+  // only when someone newly becomes stuck — re-renders shouldn't re-fire.
+  const prevStateRef = useRef<Map<string, StudentState>>(new Map())
+  const hasSeededPrevRef = useRef(false)
+  const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set())
 
   const refetch = useCallback(async () => {
     const supabase = createClient()
@@ -252,6 +257,59 @@ export function TeacherSessionView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roster, messagesByStudent, scoresByStudent])
 
+  // Watch rosterRows for non-stuck → stuck transitions. Fire toast + flash
+  // the row for 15s. The first pass seeds the map so existing stuck
+  // students on page load don't spam toasts; only new transitions after
+  // that trigger the alert.
+  useEffect(() => {
+    const prev = prevStateRef.current
+    if (!hasSeededPrevRef.current) {
+      for (const r of rosterRows) prev.set(r.student.id, r.state)
+      hasSeededPrevRef.current = true
+      return
+    }
+    const newlyStuck: RosterRow[] = []
+    for (const r of rosterRows) {
+      const before = prev.get(r.student.id)
+      if (r.state === "stuck" && before !== "stuck") newlyStuck.push(r)
+      prev.set(r.student.id, r.state)
+    }
+    if (newlyStuck.length === 0) return
+    // Only alert live — once a session ends, backfilling confusions shouldn't
+    // toast the teacher after the fact.
+    if (sessionStatus !== "active") return
+    setFlaggedIds((prevSet) => {
+      const next = new Set(prevSet)
+      for (const r of newlyStuck) next.add(r.student.id)
+      return next
+    })
+    for (const r of newlyStuck) {
+      const name = r.student.name.split(" ")[0] || "A student"
+      const topicLabel = r.topic ? ` on ${r.topic}` : ""
+      toast.error(`${name} is stuck${topicLabel}`, {
+        description: "Tap the row to open their detail panel.",
+        action: {
+          label: "Open",
+          onClick: () => setExpanded(r.student.id),
+        },
+      })
+    }
+    // Auto-clear each flag after 15s.
+    const timers = newlyStuck.map((r) =>
+      setTimeout(() => {
+        setFlaggedIds((prevSet) => {
+          if (!prevSet.has(r.student.id)) return prevSet
+          const next = new Set(prevSet)
+          next.delete(r.student.id)
+          return next
+        })
+      }, 15_000)
+    )
+    return () => {
+      for (const t of timers) clearTimeout(t)
+    }
+  }, [rosterRows, sessionStatus])
+
   const onlineCount = rosterRows.filter((r) => r.msgCount > 0).length
   const questionsLive = messages.length
 
@@ -384,6 +442,7 @@ export function TeacherSessionView({
               rosterRows.map((r) => {
                 const tone = stateTone[r.state]
                 const stuck = r.state === "stuck"
+                const flagged = flaggedIds.has(r.student.id)
                 const isOpen = expanded === r.student.id
                 return (
                   <div key={r.student.id} className="mb-0.5">
@@ -393,8 +452,9 @@ export function TeacherSessionView({
                         setExpanded(isOpen ? null : r.student.id)
                       }
                       className={cn(
-                        "grid w-full grid-cols-[28px_1fr_60px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-left",
-                        stuck && "border"
+                        "grid w-full grid-cols-[28px_1fr_60px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition",
+                        stuck && "border",
+                        flagged && "klaz-stuck-pulse"
                       )}
                       style={{
                         background: stuck

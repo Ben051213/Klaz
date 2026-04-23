@@ -121,7 +121,35 @@ export async function POST(request: Request) {
         : null,
     }
   }
-  const systemPrompt = buildSystemPrompt(normalizeSession(session))
+  // Load any class materials (syllabus / lesson plans / notes) the teacher
+  // has uploaded. Clamped to ~6k chars total — beyond that Sonnet starts to
+  // dilute attention. Order by most recently-updated so fresh content wins
+  // if we have to truncate.
+  const { data: rawMaterials } = await supabase
+    .from("class_materials")
+    .select("title, kind, content, updated_at")
+    .eq("class_id", session.class_id)
+    .order("updated_at", { ascending: false })
+  type MaterialRow = {
+    title: string
+    kind: string
+    content: string
+    updated_at: string
+  }
+  const materialsList: { title: string; kind: string; content: string }[] = []
+  let materialsBudget = 6000
+  for (const m of (rawMaterials as MaterialRow[] | null) ?? []) {
+    if (!m.content) continue
+    const slice = m.content.slice(0, materialsBudget)
+    if (slice.length === 0) break
+    materialsList.push({ title: m.title, kind: m.kind, content: slice })
+    materialsBudget -= slice.length
+    if (materialsBudget <= 0) break
+  }
+  const systemPrompt = buildSystemPrompt(
+    normalizeSession(session),
+    materialsList
+  )
 
   const stream = await anthropic.messages.stream({
     model: "claude-sonnet-4-6",

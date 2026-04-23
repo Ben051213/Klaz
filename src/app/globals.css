@@ -178,3 +178,30 @@
 
 /* The signature "period in accent" for page titles.
    Usage: <h1>Your classes<span className="text-klaz-accent">.</span></h1> */
+
+/* Pulsing terracotta glow applied to a teacher-facing roster row the moment
+   a student flips into "stuck". Fades to the regular stuck background over
+   ~15s via JS-managed class removal. */
+@keyframes klaz-stuck-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(184, 74, 43, 0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(184, 74, 43, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(184, 74, 43, 0); }
+}
+.klaz-stuck-pulse {
+  animation: klaz-stuck-pulse 1.8s ease-out infinite;
+}
+
+/* Print stylesheet for the session digest. The side rail, dashboard
+   topbar, and anything marked `.print:hidden` drop out; body background
+   goes to white so ink doesn't burn. Nothing else on the site is
+   expected to be printed — scoping to print applies globally but the
+   digest is the only page reachable with a Print button. */
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  aside,
+  header[data-klaz-topbar] {
+    display: none !important;
+  }
+}
