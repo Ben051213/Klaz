@@ -301,8 +301,8 @@ export function TeacherSessionView({
 
   return (
     <div
-      className="flex w-full flex-col overflow-hidden text-klaz-bg"
-      style={{ background: "#2a2520", minHeight: "calc(100vh - 56px)" }}
+      className="flex w-full flex-col overflow-hidden text-klaz-bg min-h-[calc(100dvh-49px)] lg:min-h-screen"
+      style={{ background: "#2a2520" }}
     >
       {/* Dark sub-topbar with LIVE dot, session title, join code, actions. */}
       <div

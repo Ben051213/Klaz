@@ -236,8 +236,7 @@ export function StudentChat({
 
   return (
     <div
-      className="flex w-full overflow-hidden bg-klaz-bg text-[13px] text-klaz-ink"
-      style={{ minHeight: "calc(100vh - 56px)" }}
+      className="flex w-full overflow-hidden bg-klaz-bg text-[13px] text-klaz-ink min-h-[calc(100dvh-49px)] lg:min-h-screen"
     >
       {/* LEFT RAIL — class info + progress */}
       <aside className="hidden w-[232px] shrink-0 flex-col border-r border-klaz-line bg-klaz-panel lg:flex">
