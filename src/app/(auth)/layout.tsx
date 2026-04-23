@@ -34,8 +34,9 @@ export default function AuthLayout({
             A note for teachers
           </div>
           <div className="mt-3.5 font-serif text-[28px] leading-[1.1] tracking-[-0.02em] md:text-[40px]">
-            Your students ask <i className="text-klaz-accent">Klaz</i> the
-            questions they&rsquo;d never ask out loud.
+            Your students ask{" "}
+            <i className="mr-[0.12em] text-klaz-accent">Klaz</i> the questions
+            they&rsquo;d never ask out loud.
           </div>
           <p className="mt-4 max-w-md text-[14px] leading-[1.6] text-[rgba(246,241,231,0.7)]">
             So when they&rsquo;re stuck, you see it — quietly, precisely, in
