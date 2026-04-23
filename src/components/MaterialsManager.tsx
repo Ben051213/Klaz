@@ -16,7 +16,7 @@ type Material = {
   created_at: string
 }
 
-// Client shell for the /dashboard/classes/:id/materials page.
+// Client shell for the Materials tab on the class /setup page.
 // Two modes per row: collapsed preview or inline editor. A dedicated "new"
 // row sits at the top. We refresh via router.refresh() after writes so the
 // server component re-fetches and pushes fresh data back.
@@ -96,7 +96,7 @@ export function MaterialsManager({
           >
             <div>
               <div className="font-serif text-[18px] leading-none tracking-[-0.01em] text-klaz-ink">
-                Paste text<span className="text-klaz-accent">.</span>
+                Paste text
               </div>
               <p className="mt-1 text-[12.5px] text-klaz-muted">
                 Syllabus, a lesson plan, or a worked example the tutor should
@@ -116,7 +116,6 @@ export function MaterialsManager({
             <div>
               <div className="font-serif text-[18px] leading-none tracking-[-0.01em] text-klaz-ink">
                 {uploading ? "Reading PDF…" : "Upload PDF"}
-                <span className="text-klaz-accent">.</span>
               </div>
               <p className="mt-1 text-[12.5px] text-klaz-muted">
                 Drop in your lesson plan — we&apos;ll extract the main topic,
@@ -133,7 +132,7 @@ export function MaterialsManager({
       {initialMaterials.length === 0 && !creating ? (
         <div className="rounded-lg border border-klaz-line bg-klaz-panel p-8 text-center">
           <p className="font-serif text-[20px] leading-none tracking-[-0.01em] text-klaz-ink">
-            No materials yet<span className="text-klaz-accent">.</span>
+            No materials yet
           </p>
           <p className="mt-2 text-[13px] text-klaz-muted">
             Everything you add here is injected into the tutor&apos;s system
@@ -220,14 +219,14 @@ function MaterialRow({
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-md border border-klaz-line bg-klaz-panel2 px-3 py-1 text-[12px] font-medium text-klaz-ink2 transition hover:bg-klaz-line2"
+            className="rounded-md border border-klaz-line bg-klaz-panel px-3 py-1 text-[12px] font-medium text-klaz-ink2 transition hover:border-klaz-ink/30 hover:bg-klaz-panel2"
           >
             Edit
           </button>
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-md border border-klaz-line bg-klaz-panel2 px-3 py-1 text-[12px] font-medium text-klaz-muted transition hover:border-[#d9a2a2] hover:text-klaz-bad"
+            className="rounded-md bg-klaz-bad-bg px-3 py-1 text-[12px] font-medium text-klaz-bad transition hover:bg-klaz-bad hover:text-white"
           >
             Delete
           </button>

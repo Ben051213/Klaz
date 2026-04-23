@@ -50,6 +50,17 @@ export function SideNav({
   const homeLabel = isTeacher ? "Classes" : "My classes"
   const liveCount = classes.filter((c) => c.live).length
 
+  // Nav items kept intentionally narrow:
+  //   · "Classes" — the real entry point; the live-session badge hangs off
+  //     it so you can still see at a glance if something is running, but
+  //     clicking always lands on classes (where the live tile lives).
+  //   · "Practice" — the one workflow surface that lives outside of class
+  //     context on the student side. Teachers get to practice per class.
+  //
+  // An earlier pass had a separate "Live sessions" entry that linked back
+  // to home — confusing, since home didn't surface the sessions list. A
+  // separate "Practice queue" for teachers duplicated the per-class
+  // drill-down with no shortcut benefit. Both removed.
   const primaryItems: NavItem[] = isTeacher
     ? [
         {
@@ -57,23 +68,10 @@ export function SideNav({
           icon: "▦",
           href: "/dashboard",
           count: classes.length || undefined,
+          badge: liveCount > 0 ? String(liveCount) : undefined,
           active:
             pathname === "/dashboard" ||
-            (pathname.startsWith("/dashboard/classes") &&
-              !pathname.endsWith("/practice")),
-        },
-        {
-          label: "Live sessions",
-          icon: "◉",
-          href: "/dashboard",
-          badge: liveCount > 0 ? String(liveCount) : undefined,
-          active: pathname.startsWith("/dashboard/session"),
-        },
-        {
-          label: "Practice queue",
-          icon: "⊞",
-          href: "/dashboard/practice",
-          active: pathname.startsWith("/dashboard/practice"),
+            pathname.startsWith("/dashboard/classes"),
         },
       ]
     : [
@@ -82,14 +80,9 @@ export function SideNav({
           icon: "▦",
           href: homeHref,
           count: classes.length || undefined,
-          active: pathname === "/learn",
-        },
-        {
-          label: "Live sessions",
-          icon: "◉",
-          href: "/learn",
           badge: liveCount > 0 ? String(liveCount) : undefined,
-          active: pathname.startsWith("/learn/session"),
+          active:
+            pathname === "/learn" || pathname.startsWith("/learn/session"),
         },
         // Progress tab intentionally removed — surfacing students' weak
         // topics to themselves discourages asking questions (the whole
@@ -132,7 +125,7 @@ export function SideNav({
       <aside className="sticky top-0 hidden h-screen w-[224px] shrink-0 flex-col border-r border-klaz-line bg-klaz-panel lg:flex">
         <div className="flex items-center gap-2 border-b border-klaz-line2 px-4 py-3.5">
           <Link href={homeHref} className="flex items-center gap-2">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-klaz-ink font-serif text-[15px] italic text-klaz-bg">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-klaz-ink font-mono text-[11px] font-bold text-klaz-bg">
               K
             </span>
             <span className="font-serif text-[20px] leading-none tracking-[-0.01em] text-klaz-ink">
@@ -164,7 +157,7 @@ export function SideNav({
         </div>
 
         <div className="flex items-center gap-2 border-t border-klaz-line2 px-3 py-2.5">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-klaz-ink font-serif text-[13px] italic text-klaz-bg">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-klaz-ink font-mono text-[11px] font-bold text-klaz-bg">
             {initialOf(name)}
           </span>
           <div className="min-w-0">
@@ -181,7 +174,7 @@ export function SideNav({
       {/* Mobile top bar */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-klaz-line bg-klaz-panel/90 px-4 py-2.5 backdrop-blur lg:hidden">
         <Link href={homeHref} className="flex items-center gap-2">
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-klaz-ink font-serif text-[14px] italic text-klaz-bg">
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-klaz-ink font-mono text-[11px] font-bold text-klaz-bg">
             K
           </span>
           <span className="font-serif text-[19px] leading-none tracking-[-0.01em] text-klaz-ink">

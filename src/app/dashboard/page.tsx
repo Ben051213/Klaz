@@ -1,23 +1,24 @@
 import Link from "next/link"
 import { CreateClassDialog } from "@/components/CreateClassDialog"
 import { KlazTitle } from "@/components/klaz/KlazTitle"
-import { LiveHero } from "@/components/klaz/LiveHero"
 import { Sparkline } from "@/components/klaz/Sparkline"
 import { Chip } from "@/components/klaz/Chip"
 import { flavorClasses } from "@/lib/flavor"
 import { createClient } from "@/lib/supabase/server"
-import { formatDuration, formatRelative, scoreHex } from "@/lib/utils"
+import { formatRelative, scoreHex } from "@/lib/utils"
 
 // Teacher dashboard — the "warm editorial" classes index.
 //   Serif title "Your classes." with a terracotta full-stop
-//   Summary meta line with counts
-//   LiveHero strip if any session is currently running
+//   Summary meta line with counts + a compact live-session CTA
 //   A data-dense classes table (cream panel, mono join codes, avg + sparkline)
 //
-// We fetch everything needed in parallel: classes, enrollment counts, active
-// sessions + message count for the live hero, topic scores for per-class
-// averages, and the latest session.started_at per class for the "Updated"
-// sub-meta on each row.
+// The big LiveHero that used to sit here was moved out — the class-detail
+// page renders the same hero contextually, so running it twice in a row
+// (dashboard → class) was visual duplication. A thin "Session live →"
+// link in the caption keeps the affordance without repeating the heatmap.
+//
+// We still fetch classes, enrollment counts, sessions, and topic scores
+// in parallel for the table.
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -82,89 +83,39 @@ export default async function DashboardPage() {
     scoresByClass.set(r.class_id, bucket)
   }
 
-  // For the LiveHero: find the first active session across all classes.
+  // 24h pulse — count messages per class in the last 24h so each row can
+  // surface a "N questions today" chip. Makes the dashboard feel alive
+  // without a full live data subscription. Single round-trip keyed by
+  // session.class_id via a join on the messages view. If this starts to
+  // cost, swap to an hourly rollup.
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const sessionIdsAll = rows.flatMap((r) => r.sessions.map((s) => s.id))
+  const msgCountByClass = new Map<string, number>()
+  if (sessionIdsAll.length > 0) {
+    const { data: recentMsgs } = await supabase
+      .from("messages")
+      .select("session_id")
+      .in("session_id", sessionIdsAll)
+      .gte("created_at", since24h)
+    const classBySession = new Map<string, string>()
+    for (const r of rows) {
+      for (const s of r.sessions) classBySession.set(s.id, r.id)
+    }
+    for (const m of (recentMsgs as { session_id: string }[] | null) ?? []) {
+      const cid = classBySession.get(m.session_id)
+      if (!cid) continue
+      msgCountByClass.set(cid, (msgCountByClass.get(cid) ?? 0) + 1)
+    }
+  }
+
+  // Find the first live session across all classes so the caption can
+  // offer a one-tap "jump in" link. The heavy cross-session aggregation
+  // that used to live here moved down to the class-detail LiveHero.
   const liveRow = rows.find((r) => r.sessions?.some((s) => s.status === "active"))
   const liveSession = liveRow?.sessions?.find((s) => s.status === "active")
   const activeCount = rows.filter((r) =>
     r.sessions?.some((s) => s.status === "active")
   ).length
-
-  // Pull hero data for the currently live session only (topic heat + online
-  // count + question count). We skip this if nothing is live to avoid an
-  // empty round-trip.
-  let heroData: {
-    questionCount: number
-    onlineCount: number
-    totalCount: number
-    elapsed: string
-    hottestTopic: string | null
-    hottestPercent: number | null
-    atRisk: { id: string; name: string }[]
-    atRiskCount: number
-  } | null = null
-
-  if (liveRow && liveSession) {
-    const [msgRes, enrollRes, scoreRes] = await Promise.all([
-      supabase
-        .from("messages")
-        .select("student_id, topics, created_at")
-        .eq("session_id", liveSession.id),
-      supabase
-        .from("class_enrollments")
-        .select("student_id, profiles(id, name)")
-        .eq("class_id", liveRow.id),
-      supabase
-        .from("student_topic_scores")
-        .select("student_id, topic, score, profiles(name)")
-        .eq("class_id", liveRow.id),
-    ])
-    type Msg = { student_id: string; topics: string[] | null; created_at: string }
-    const msgs = (msgRes.data as Msg[] | null) ?? []
-    const active = new Set(msgs.map((m) => m.student_id))
-    const topicCount = new Map<string, number>()
-    for (const m of msgs) {
-      if (!m.topics) continue
-      for (const t of m.topics) topicCount.set(t, (topicCount.get(t) ?? 0) + 1)
-    }
-    const hottest = [...topicCount.entries()].sort((a, b) => b[1] - a[1])[0]
-    const totalCount = (enrollRes.data as { student_id: string }[] | null)?.length ?? 0
-    type Score = {
-      student_id: string
-      topic: string
-      score: number
-      profiles: { name: string } | { name: string }[] | null
-    }
-    const scores = (scoreRes.data as Score[] | null) ?? []
-    // Aggregate per student: an average across topics gives a single number
-    // to threshold against, matching how the class detail page ranks kids.
-    const perStudent = new Map<string, { total: number; n: number; name: string }>()
-    for (const s of scores) {
-      const profile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles
-      const name = profile?.name ?? "Student"
-      const entry = perStudent.get(s.student_id) ?? { total: 0, n: 0, name }
-      entry.total += s.score
-      entry.n += 1
-      entry.name = name
-      perStudent.set(s.student_id, entry)
-    }
-    const atRisk = [...perStudent.entries()]
-      .map(([id, v]) => ({ id, name: v.name, avg: v.total / Math.max(1, v.n) }))
-      .filter((s) => s.avg < 65)
-      .sort((a, b) => a.avg - b.avg)
-
-    heroData = {
-      questionCount: msgs.length,
-      onlineCount: active.size,
-      totalCount,
-      elapsed: formatDuration(liveSession.started_at),
-      hottestTopic: hottest?.[0] ?? null,
-      hottestPercent: hottest
-        ? Math.round((hottest[1] / Math.max(1, msgs.length)) * 100)
-        : null,
-      atRisk: atRisk.map((s) => ({ id: s.id, name: s.name })),
-      atRiskCount: atRisk.length,
-    }
-  }
 
   const totalStudents = rows.reduce(
     (sum, r) => sum + (r.class_enrollments?.[0]?.count ?? 0),
@@ -189,29 +140,30 @@ export default async function DashboardPage() {
         <CreateClassDialog />
       </div>
 
-      {liveSession && liveRow && heroData ? (
-        <div className="mt-6">
-          <LiveHero
-            classLabel={liveRow.name}
-            topic={liveSession.title || null}
-            elapsed={heroData.elapsed}
-            onlineCount={heroData.onlineCount}
-            totalCount={heroData.totalCount}
-            questionCount={heroData.questionCount}
-            hottestTopic={heroData.hottestTopic}
-            hottestPercent={heroData.hottestPercent}
-            atRisk={heroData.atRisk}
-            sessionId={liveSession.id}
-            atRiskCount={heroData.atRiskCount}
-          />
-        </div>
+      {liveSession && liveRow ? (
+        <Link
+          href={`/dashboard/session/${liveSession.id}`}
+          className="mt-5 flex items-center gap-3 rounded-lg border border-klaz-accent/40 bg-klaz-mint-bg px-4 py-2.5 text-[13px] text-klaz-ink transition hover:border-klaz-accent hover:bg-klaz-mint-bg/60"
+        >
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-klaz-accent opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-klaz-accent" />
+          </span>
+          <span className="font-medium">{liveRow.name}</span>
+          <span className="text-klaz-muted">·</span>
+          <span className="text-klaz-ink2">
+            {liveSession.title || "Live session"} running now
+          </span>
+          <span className="ml-auto font-mono text-[11px] uppercase tracking-[0.08em] text-klaz-ink2">
+            Jump in →
+          </span>
+        </Link>
       ) : null}
 
       {rows.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-klaz-line bg-klaz-panel p-12 text-center">
           <p className="font-serif text-[20px] text-klaz-ink">
             You haven&apos;t created a class yet
-            <span className="text-klaz-accent">.</span>
           </p>
           <p className="mt-2 text-[13.5px] text-klaz-muted">
             Click <span className="font-medium text-klaz-ink">+ New class</span>{" "}
@@ -283,8 +235,17 @@ export default async function DashboardPage() {
                       </Chip>
                     ) : null}
                   </div>
-                  <div className="mt-0.5 pl-[30px] text-[11.5px] text-klaz-muted">
-                    Updated {formatRelative(lastTouched)}
+                  <div className="mt-0.5 flex items-center gap-2 pl-[30px] text-[11.5px] text-klaz-muted">
+                    <span>Updated {formatRelative(lastTouched)}</span>
+                    {(() => {
+                      const n = msgCountByClass.get(c.id) ?? 0
+                      if (n === 0) return null
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-klaz-mint-bg px-1.5 py-[1px] font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-klaz-ok">
+                          {n} today
+                        </span>
+                      )
+                    })()}
                   </div>
                 </div>
                 <span className="text-[13px] text-klaz-ink2">

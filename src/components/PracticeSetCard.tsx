@@ -42,7 +42,6 @@ export function PracticeSetCard({
             <CardTitle className="font-serif text-[20px] font-normal tracking-[-0.01em] text-klaz-ink">
               {items.length} suggested question
               {items.length === 1 ? "" : "s"}
-              <span className="text-klaz-accent">.</span>
             </CardTitle>
             <div className="mt-2 flex flex-wrap gap-1">
               {topics.map((t) => (

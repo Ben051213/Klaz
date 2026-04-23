@@ -55,7 +55,7 @@ export function StudentPracticeList({ sets }: { sets: StudentSet[] }) {
     return (
       <div className="rounded-lg border border-dashed border-klaz-line bg-klaz-panel p-10 text-center">
         <p className="font-serif text-[20px] leading-none tracking-[-0.01em] text-klaz-ink">
-          Nothing assigned<span className="text-klaz-accent">.</span>
+          Nothing assigned
         </p>
         <p className="mt-2 text-[13px] text-klaz-muted">
           When your teacher assigns practice after class, it&apos;ll appear here.

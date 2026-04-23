@@ -135,7 +135,7 @@ export default async function TeacherSessionPage({
                 After the bell
               </div>
               <div className="mt-0.5 font-serif text-[22px] leading-none tracking-[-0.01em] text-klaz-ink">
-                Wrap this session<span className="text-klaz-accent">.</span>
+                Wrap this session
               </div>
             </div>
             <Link
@@ -149,7 +149,6 @@ export default async function TeacherSessionPage({
             <CardHeader>
               <CardTitle className="font-serif text-[24px] font-normal tracking-[-0.01em] text-klaz-ink">
                 Suggested follow-ups
-                <span className="text-klaz-accent">.</span>
               </CardTitle>
               <p className="text-[12.5px] text-klaz-muted">
                 AI-generated practice questions targeting each student&apos;s

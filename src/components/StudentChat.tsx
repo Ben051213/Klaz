@@ -306,7 +306,6 @@ export function StudentChat({
           <div className="min-w-0">
             <div className="truncate font-serif text-[20px] leading-none tracking-[-0.01em] md:text-[22px]">
               {session.title}
-              <span className="text-klaz-accent">.</span>
             </div>
             <div className="mt-1 text-[11.5px] text-klaz-muted">
               Tutor scope:{" "}
@@ -326,7 +325,7 @@ export function StudentChat({
           <div className="mx-auto flex max-w-[760px] flex-col gap-4">
             {items.length === 0 ? (
               <div className="flex items-start gap-2.5">
-                <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-klaz-ink font-serif text-[15px] italic text-klaz-bg">
+                <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-klaz-ink font-mono text-[11px] font-bold text-klaz-bg">
                   K
                 </div>
                 <div className="min-w-0 flex-1">
@@ -405,7 +404,7 @@ export function StudentChat({
                     onClick={() => send()}
                     disabled={streaming || input.trim().length === 0}
                     aria-label="Send"
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-klaz-accent text-[14px] text-white transition hover:bg-klaz-accent2 disabled:opacity-50"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-klaz-accent text-[14px] font-bold text-klaz-deep transition hover:bg-klaz-accent2 hover:text-white disabled:opacity-40"
                   >
                     ↑
                   </button>

@@ -65,7 +65,7 @@ export function ClassSettingsClient({
           Tutor tone
         </div>
         <h3 className="mt-0.5 font-serif text-[20px] leading-none tracking-[-0.01em] text-klaz-ink">
-          How Klaz should sound<span className="text-klaz-accent">.</span>
+          How Klaz should sound
         </h3>
         <p className="mt-1 text-[12.5px] text-klaz-muted">
           Short, specific. Think of it as a note to a substitute teacher:{" "}
@@ -109,7 +109,7 @@ export function ClassSettingsClient({
           Class flavor
         </div>
         <h3 className="mt-0.5 font-serif text-[20px] leading-none tracking-[-0.01em] text-klaz-ink">
-          A pastel for quick recognition<span className="text-klaz-accent">.</span>
+          A pastel for quick recognition
         </h3>
         <p className="mt-1 text-[12.5px] text-klaz-muted">
           Tints the card and avatar on the dashboard. Nothing else changes.

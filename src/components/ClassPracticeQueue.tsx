@@ -113,7 +113,7 @@ export function ClassPracticeQueue({ sets }: { sets: FlatPracticeSet[] }) {
     return (
       <div className="rounded-lg border border-dashed border-klaz-line bg-klaz-panel p-10 text-center">
         <p className="font-serif text-[20px] leading-none tracking-[-0.01em] text-klaz-ink">
-          No practice yet<span className="text-klaz-accent">.</span>
+          No practice yet
         </p>
         <p className="mt-2 text-[13px] text-klaz-muted">
           Ending a session auto-generates a practice set for each student
@@ -212,7 +212,7 @@ export function ClassPracticeQueue({ sets }: { sets: FlatPracticeSet[] }) {
                     <button
                       type="button"
                       onClick={() => setOpenId(isOpen ? null : s.id)}
-                      className="h-8 rounded-md border border-klaz-line bg-klaz-panel2 px-3 text-[12px] font-medium text-klaz-ink2 transition hover:bg-klaz-line2"
+                      className="h-8 rounded-md border border-klaz-line bg-klaz-panel px-3 text-[12px] font-medium text-klaz-ink2 transition hover:border-klaz-ink/30 hover:bg-klaz-panel2"
                     >
                       {isOpen ? "Hide" : "Preview"}
                     </button>
@@ -221,7 +221,7 @@ export function ClassPracticeQueue({ sets }: { sets: FlatPracticeSet[] }) {
                         type="button"
                         onClick={() => approve(s.id)}
                         disabled={pendingId === s.id}
-                        className="h-8 rounded-md border border-klaz-line bg-klaz-panel2 px-3 text-[12px] font-medium text-klaz-ink2 transition hover:bg-klaz-line2 disabled:opacity-50"
+                        className="h-8 rounded-md bg-klaz-ink px-3 text-[12px] font-medium text-klaz-bg transition hover:bg-klaz-deep disabled:opacity-50"
                       >
                         {pendingId === s.id ? "…" : "Mark ready"}
                       </button>
@@ -231,7 +231,7 @@ export function ClassPracticeQueue({ sets }: { sets: FlatPracticeSet[] }) {
                         type="button"
                         onClick={() => assign(s.id)}
                         disabled={pendingId === s.id}
-                        className="h-8 rounded-md bg-klaz-accent px-3 text-[12px] font-medium text-white transition hover:bg-klaz-accent2 disabled:opacity-50"
+                        className="h-8 rounded-md bg-klaz-accent px-3 text-[12px] font-medium text-klaz-deep transition hover:bg-klaz-accent2 hover:text-white disabled:opacity-50"
                       >
                         {pendingId === s.id ? "…" : "Assign →"}
                       </button>
@@ -241,7 +241,7 @@ export function ClassPracticeQueue({ sets }: { sets: FlatPracticeSet[] }) {
                         type="button"
                         onClick={() => unassign(s.id)}
                         disabled={pendingId === s.id}
-                        className="h-8 rounded-md border border-klaz-line bg-klaz-panel2 px-3 text-[12px] font-medium text-klaz-bad transition hover:bg-klaz-line2 disabled:opacity-50"
+                        className="h-8 rounded-md bg-klaz-bad-bg px-3 text-[12px] font-medium text-klaz-bad transition hover:bg-klaz-bad hover:text-white disabled:opacity-50"
                       >
                         {pendingId === s.id ? "…" : "Unassign"}
                       </button>

@@ -67,7 +67,7 @@ export function ChatMessage({
   }
   return (
     <div className="flex items-start gap-2.5">
-      <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-klaz-ink font-serif text-[15px] italic text-klaz-bg">
+      <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-klaz-ink font-mono text-[11px] font-bold text-klaz-bg">
         K
       </div>
       <div className="min-w-0 flex-1">

@@ -38,7 +38,6 @@ export function ClassWeakTopicBanner({
             {visible.length === 1
               ? "One topic needs a second pass"
               : `${visible.length} topics need a second pass`}
-            <span className="text-klaz-accent">.</span>
           </h3>
           <p className="mt-1.5 max-w-2xl text-[12.5px] text-klaz-muted">
             Scores below 50 across more than one student. Click through to the

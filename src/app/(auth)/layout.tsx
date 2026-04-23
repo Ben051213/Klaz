@@ -21,7 +21,7 @@ export default function AuthLayout({
         }}
       >
         <Link href="/" className="relative flex items-center gap-2.5">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-klaz-bg font-serif text-[16px] italic text-klaz-deep">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-klaz-bg font-mono text-[12px] font-bold text-klaz-deep">
             K
           </span>
           <span className="font-serif text-[24px] leading-none tracking-tight">

@@ -29,7 +29,12 @@
   */
   --color-klaz-bg:        #faf7f5;
   --color-klaz-panel:     #ffffff;
-  --color-klaz-panel2:    #fbfaf8;
+  /* panel2 is the "second surface" — used for insets, secondary button
+     chrome, read-only fields inside a card. Previously #fbfaf8, which was
+     0.5% darker than #ffffff and read as "disabled". Bumped to a cream
+     that is *visibly* a distinct tone on the white panel but still soft
+     enough not to compete with the main surface. */
+  --color-klaz-panel2:    #f4efe9;
   --color-klaz-ink:       #2b2a38;
   --color-klaz-ink2:      #55516a;
   --color-klaz-muted:     #8a849b;

@@ -28,7 +28,7 @@ export function NavBar({ role, name }: { role: Role; name?: string }) {
     <header className="sticky top-0 z-40 border-b border-klaz-line bg-klaz-panel/90 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-klaz-ink font-serif text-[15px] italic text-klaz-bg">
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-klaz-ink font-mono text-[11px] font-bold text-klaz-bg">
             K
           </span>
           <span className="font-serif text-[20px] leading-none tracking-tight text-klaz-ink">

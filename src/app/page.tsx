@@ -28,7 +28,7 @@ export default async function RootPage() {
       {/* Top nav */}
       <nav className="mx-auto flex w-full max-w-7xl items-center gap-7 px-6 py-5 sm:px-12">
         <Link href="/" className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-klaz-ink font-serif text-[17px] italic text-klaz-bg">
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-klaz-ink font-mono text-[12px] font-bold text-klaz-bg">
             K
           </span>
           <span className="font-serif text-[24px] leading-none tracking-tight">
@@ -159,7 +159,6 @@ export default async function RootPage() {
             </div>
             <div className="mt-2.5 font-serif text-[24px] tracking-tight">
               {f.t}
-              <span className="text-klaz-accent">.</span>
             </div>
             <div className="mt-2 text-[13.5px] leading-[1.55] text-klaz-ink2">
               {f.d}

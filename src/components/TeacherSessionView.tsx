@@ -354,7 +354,11 @@ export function TeacherSessionView({
     toast.success("Session ended — generating practice sets")
     setSessionStatus("ended")
     setEndedAt(data.session?.ended_at)
-    router.refresh()
+    // Send the teacher straight to the digest. Before this, they landed
+    // back on the same live surface with a greyed-out pulse — the digest
+    // link was buried in the post-session actions, so most teachers
+    // never opened it. The digest *is* the debrief; make it the default.
+    router.push(`/dashboard/session/${session.id}/digest`)
   }
 
   const isLive = sessionStatus === "active"
@@ -539,7 +543,7 @@ export function TeacherSessionView({
           <div className="flex items-end justify-between px-5 pb-1.5 pt-4 sm:px-6">
             <div>
               <div className="font-serif text-[22px] leading-none tracking-[-0.01em] md:text-[24px]">
-                Class Pulse<span className="text-klaz-accent">.</span>
+                Class Pulse
               </div>
               <div className="mt-0.5 text-[11.5px] text-[rgba(250,247,245,0.55)]">
                 Topics plotted by{" "}

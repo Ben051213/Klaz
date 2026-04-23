@@ -253,7 +253,7 @@ export default async function StudentProfilePage({
               Topics
             </div>
             <h2 className="mt-1 font-serif text-[22px] leading-none tracking-[-0.01em] text-klaz-ink">
-              Where they are<span className="text-klaz-accent">.</span>
+              Where they are
             </h2>
           </div>
           <p className="max-w-xs text-right text-[11.5px] text-klaz-muted">
@@ -277,7 +277,7 @@ export default async function StudentProfilePage({
             Private notes
           </div>
           <h2 className="mt-1 font-serif text-[22px] leading-none tracking-[-0.01em] text-klaz-ink">
-            Just for you<span className="text-klaz-accent">.</span>
+            Just for you
           </h2>
           {noteRow?.updated_at ? (
             <p className="mt-1 text-[11.5px] text-klaz-faint">
@@ -298,7 +298,7 @@ export default async function StudentProfilePage({
             Questions
           </div>
           <h2 className="mt-1 font-serif text-[22px] leading-none tracking-[-0.01em] text-klaz-ink">
-            What they asked<span className="text-klaz-accent">.</span>
+            What they asked
           </h2>
           {grouped.length === 0 ? (
             <p className="mt-3 text-[12.5px] text-klaz-muted">

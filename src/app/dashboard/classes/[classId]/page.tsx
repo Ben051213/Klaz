@@ -231,21 +231,21 @@ export default async function ClassDetailPage({
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/dashboard/classes/${klass.id}/materials`}
-            className="inline-flex h-9 items-center rounded-md border border-klaz-line bg-klaz-panel2 px-3 text-[13px] font-medium text-klaz-ink2 transition hover:bg-klaz-line2"
+            href={`/dashboard/classes/${klass.id}/setup`}
+            className="inline-flex h-9 items-center rounded-md border border-klaz-line bg-klaz-panel px-3 text-[13px] font-medium text-klaz-ink transition hover:border-klaz-ink/40 hover:bg-klaz-panel2"
           >
-            Materials →
+            Setup →
           </Link>
           <Link
             href={`/dashboard/classes/${klass.id}/practice`}
-            className="inline-flex h-9 items-center rounded-md border border-klaz-line bg-klaz-panel2 px-3 text-[13px] font-medium text-klaz-ink2 transition hover:bg-klaz-line2"
+            className="inline-flex h-9 items-center rounded-md border border-klaz-line bg-klaz-panel px-3 text-[13px] font-medium text-klaz-ink transition hover:border-klaz-ink/40 hover:bg-klaz-panel2"
           >
             Practice queue →
           </Link>
           {activeSession ? (
             <Link
               href={`/dashboard/session/${activeSession.id}`}
-              className="inline-flex items-center gap-1.5 rounded-md bg-klaz-accent px-4 py-2 text-[13.5px] font-medium text-white transition hover:bg-klaz-accent2"
+              className="inline-flex items-center gap-1.5 rounded-md bg-klaz-accent px-4 py-2 text-[13.5px] font-medium text-klaz-deep transition hover:bg-klaz-accent2 hover:text-white"
             >
               Enter pulse →
             </Link>
@@ -282,7 +282,7 @@ export default async function ClassDetailPage({
             Share with students
           </div>
           <div className="mt-1 font-serif text-[20px] text-klaz-ink">
-            Join this class<span className="text-klaz-accent">.</span>
+            Join this class
           </div>
           <p className="mt-1 text-[12.5px] text-klaz-muted">
             Students scan the QR or type the code at{" "}

@@ -58,7 +58,6 @@ export function CreateClassDialog() {
         <DialogHeader>
           <DialogTitle className="font-serif text-[24px] font-normal tracking-[-0.01em] text-klaz-ink">
             Create a new class
-            <span className="text-klaz-accent">.</span>
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">

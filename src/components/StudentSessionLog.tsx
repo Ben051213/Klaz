@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { flavorClasses } from "@/lib/flavor"
+import { RichText } from "@/components/RichText"
 import { cn, formatRelative } from "@/lib/utils"
 
 // StudentSessionLog — the student's personal lesson notebook.
@@ -145,9 +146,9 @@ export function StudentSessionLog({
                               <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-klaz-faint">
                                 Klaz
                               </div>
-                              <p className="mt-1 whitespace-pre-wrap text-[12.5px] leading-[1.55] text-klaz-ink2">
+                              <RichText size="sm" className="mt-1">
                                 {q.response}
-                              </p>
+                              </RichText>
                             </div>
                           ) : (
                             <p className="mt-1 text-[11.5px] italic text-klaz-faint">

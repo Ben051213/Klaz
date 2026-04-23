@@ -87,7 +87,7 @@ export function SessionStartModal({ classId }: { classId: string }) {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-serif text-[24px] font-normal tracking-[-0.01em] text-klaz-ink">
-            Start a new session<span className="text-klaz-accent">.</span>
+            Start a new session
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">

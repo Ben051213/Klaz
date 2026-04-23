@@ -304,7 +304,6 @@ export default async function LearnHome() {
               </div>
               <div className="mt-0.5 font-serif text-[26px] leading-none tracking-[-0.01em] text-klaz-ink">
                 {streak} session{streak === 1 ? "" : "s"} in a row
-                <span className="text-klaz-accent">.</span>
               </div>
               <p className="mt-1 text-[12.5px] text-klaz-muted">
                 Ask at least <span className="font-medium text-klaz-ink">{TARGET}</span>{" "}
@@ -345,7 +344,7 @@ export default async function LearnHome() {
       {activeRows.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-klaz-line bg-klaz-panel p-10 text-center">
           <p className="font-serif text-[20px] leading-none tracking-[-0.01em] text-klaz-ink">
-            No classes yet<span className="text-klaz-accent">.</span>
+            No classes yet
           </p>
           <p className="mt-2 text-[13px] text-klaz-muted">
             Enter a join code above to get started.
@@ -436,7 +435,7 @@ export default async function LearnHome() {
                 Session log
               </div>
               <h2 className="mt-1 font-serif text-[24px] leading-none tracking-[-0.01em] text-klaz-ink">
-                What you asked<span className="text-klaz-accent">.</span>
+                What you asked
               </h2>
             </div>
             <p className="max-w-xs text-right text-[11.5px] text-klaz-muted">
@@ -446,6 +445,24 @@ export default async function LearnHome() {
           <div className="mt-4">
             <StudentSessionLog entries={sessionLogEntries} target={TARGET} />
           </div>
+        </div>
+      ) : activeRows.length > 0 ? (
+        // Enrolled but hasn't asked anything yet. Soft nudge so the
+        // surface doesn't feel half-empty, and so they know what the
+        // session log is before they see a populated one.
+        <div className="mt-10">
+          <div className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.08em] text-klaz-faint">
+            Session log
+          </div>
+          <h2 className="mt-1 font-serif text-[24px] leading-none tracking-[-0.01em] text-klaz-ink">
+            Nothing asked yet
+          </h2>
+          <p className="mt-2 max-w-md text-[13px] text-klaz-muted">
+            When your teacher starts a live session, ask Klaz anything —
+            even the obvious stuff. Your questions stay private to you, and
+            they&rsquo;ll show up here so you can re-read the explanations
+            later.
+          </p>
         </div>
       ) : null}
     </div>
